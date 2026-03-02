@@ -1,0 +1,321 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USERS & AUTHENTICATION ====================
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  role          Role     @default(tourist)
+  avatarUrl     String?  @map("avatar_url")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  touristProfile TouristProfile?
+  business       Business?
+  posts          Post[]
+  postLikes      PostLike[]
+  postComments   PostComment[]
+  aiSessions     AiSession[]
+  tipsSent       Tip[]       @relation("TipsSent")
+  analytics      AnalyticsEvent[]
+
+  @@map("users")
+}
+
+enum Role {
+  tourist
+  business_owner
+  admin
+}
+
+model TouristProfile {
+  id                    String       @id @default(uuid())
+  userId                String       @unique @map("user_id")
+  homeCity              String?      @map("home_city")
+  travelStyle           TravelStyle? @map("travel_style")
+  preferredDuration     Int?         @map("preferred_duration_hours")
+  hasKids               Boolean?     @default(false) @map("has_kids")
+  notes                 String?
+  language              String       @default("es")
+  notificationsEnabled  Boolean      @default(true) @map("notifications_enabled")
+  createdAt             DateTime     @default(now()) @map("created_at")
+  updatedAt             DateTime     @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("tourist_profiles")
+}
+
+enum TravelStyle {
+  relax
+  adventure
+  family
+  culture
+  foodie
+}
+
+// ==================== BUSINESSES ====================
+
+model Business {
+  id             String   @id @default(uuid())
+  ownerId        String   @unique @map("owner_id")
+  name           String
+  category       String
+  description    String
+  phone          String?
+  address        String?
+  imageUrl       String?  @map("image_url")
+  website        String?
+  email          String?
+  isPremium      Boolean  @default(false) @map("is_premium")
+  premiumUntil   DateTime? @map("premium_until")
+  latitude       Float?
+  longitude      Float?
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tipsReceived Tip[] @relation("TipsToBusiness")
+
+  @@map("businesses")
+}
+
+// ==================== CONTENT: POSTS ====================
+
+model Post {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  placeName     String   @map("place_name")
+  content       String
+  imageUrl      String?  @map("image_url")
+  likesCount    Int      @default(0) @map("likes_count")
+  commentsCount Int      @default(0) @map("comments_count")
+  isModerated   Boolean  @default(false) @map("is_moderated")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes    PostLike[]
+  comments PostComment[]
+
+  @@map("posts")
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+}
+
+model PostComment {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("post_comments")
+}
+
+// ==================== EVENTS & ROUTES ====================
+
+model Event {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  location    String
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime? @map("end_date")
+  imageUrl    String?   @map("image_url")
+  isFeatured  Boolean   @default(false) @map("is_featured")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("events")
+}
+
+model Route {
+  id                 String        @id @default(uuid())
+  name               String
+  description        String
+  difficulty         Difficulty
+  durationMinutes    Int           @map("duration_minutes")
+  distanceKm         Float?        @map("distance_km")
+  imageUrl           String?       @map("image_url")
+  isNightRoute       Boolean       @default(false) @map("is_night_route")
+  isFamilyFriendly   Boolean       @default(true) @map("is_family_friendly")
+  isActive           Boolean       @default(true) @map("is_active")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  points RoutePoint[]
+
+  @@map("routes")
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+model RoutePoint {
+  id        String  @id @default(uuid())
+  routeId   String  @map("route_id")
+  order     Int
+  markerId  String? @map("marker_id")
+  name      String
+  latitude  Float
+  longitude Float
+  description String?
+
+  route Route @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@map("route_points")
+}
+
+// ==================== MAP MARKERS ====================
+
+model Marker {
+  id                String   @id @default(uuid())
+  name              String
+  category          MarkerCategory
+  description       String?
+  lat               Float
+  lng               Float
+  imageUrl          String?  @map("image_url")
+  isPremiumBusiness Boolean  @default(false) @map("is_premium_business")
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("markers")
+}
+
+enum MarkerCategory {
+  site
+  business
+  viewpoint
+  nature
+  culture
+  food
+}
+
+// ==================== TIPS & DONATIONS ====================
+
+model Tip {
+  id                  String      @id @default(uuid())
+  fromUserId          String?     @map("from_user_id")
+  toType              TipType     @map("to_type")
+  toBusinessId        String?     @map("to_business_id")
+  amount              Decimal     @db.Decimal(10, 2)
+  currency            String      @default("MXN")
+  message             String?
+  paymentProvider     String      @map("payment_provider")
+  providerPaymentId   String      @map("provider_payment_id")
+  status              TipStatus   @default(pending)
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  fromUser   User?     @relation("TipsSent", fields: [fromUserId], references: [id], onDelete: SetNull)
+  toBusiness Business? @relation("TipsToBusiness", fields: [toBusinessId], references: [id], onDelete: SetNull)
+
+  @@map("tips")
+}
+
+enum TipType {
+  app
+  business
+}
+
+enum TipStatus {
+  pending
+  succeeded
+  failed
+  refunded
+}
+
+// ==================== ANALYTICS ====================
+
+model AnalyticsEvent {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  eventType   String   @map("event_type")
+  metadata    Json?
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+// ==================== AI & CHAT ====================
+
+model AiSession {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  mode      AiMode   @default(tourist)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user     User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  messages AiMessage[]
+
+  @@map("ai_sessions")
+}
+
+enum AiMode {
+  tourist
+  business
+}
+
+model AiMessage {
+  id        String    @id @default(uuid())
+  sessionId String    @map("session_id")
+  sender    Sender
+  content   String
+  actions   Json?     // Store suggested actions as JSON
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  session AiSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("ai_messages")
+}
+
+enum Sender {
+  user
+  realito
+}
