@@ -19,6 +19,7 @@ import markerRoutes from "./routes/markers";
 import tipRoutes from "./routes/tips";
 import aiRoutes from "./routes/ai";
 import analyticsRoutes from "./routes/analytics";
+import exploreRoutes from "./routes/explore";
 
 dotenv.config();
 
@@ -67,6 +68,7 @@ app.use("/api/markers", markerRoutes);
 app.use("/api/tips", tipRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/explore", exploreRoutes);
 
 // Error handling
 app.use(errorHandler);

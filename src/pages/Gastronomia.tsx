@@ -1,10 +1,63 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Utensils, ChefHat, Coffee, Wine, Star, Clock, MapPin } from "lucide-react";
+import { 
+  Utensils, ChefHat, Coffee, Star, Clock, MapPin, 
+  Flame, Sparkles, Navigation
+} from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
+import SectionHeader from "@/components/SectionHeader";
+import LiveEventBadge from "@/components/LiveEventBadge";
 import pasteImg from "@/assets/paste.webp";
-import callesImg from "@/assets/calles-colonial.webp";
+
+interface Business {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  address?: string;
+  phone?: string;
+  imageUrl?: string;
+  isPremium: boolean;
+}
+
+interface ContentRecommendation {
+  id: string;
+  business: Business;
+  reason?: string;
+}
+
+interface ContentBlock {
+  id: string;
+  title: string;
+  subtitle?: string;
+  body: string;
+  recommendations: ContentRecommendation[];
+}
+
+interface LiveEvent {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  startsAt: string;
+  endsAt: string;
+  distanceKm?: number | null;
+  business?: Business | null;
+}
+
+interface ExploreData {
+  section: {
+    id: string;
+    title: string;
+    description?: string;
+    blocks: ContentBlock[];
+  } | null;
+  routes: any[];
+  businesses: Business[];
+  liveEvents: LiveEvent[];
+}
 
 const pasteTypes = [
   {
@@ -51,195 +104,277 @@ const pasteTypes = [
   }
 ];
 
-const restaurants = [
-  {
-    name: "Pastes El Portal",
-    category: "Pastes Tradicionales",
-    since: "Desde 1985",
-    specialty: "Paste de Papa con Carne",
-    description: "Los pastes más tradicionales de Real del Monte. Familia con más de 40 años de tradición pastelesa.",
-    rating: 4.9,
-    phone: "771 123 4567",
-    location: "Portal del Comercio #15"
-  },
-  {
-    name: "Café La Neblina",
-    category: "Cafetería",
-    since: "Desde 2010",
-    specialty: "Café de altura y paste dulce",
-    description: "Café artesanal cultivado en la región, acompañado de deliciosos postres tradicionales con vista al bosque.",
-    rating: 4.7,
-    phone: "771 234 5678",
-    location: "Av. Hidalgo #42"
-  },
-  {
-    name: "Mesón de la Abuela",
-    category: "Cocina Regional",
-    since: "Desde 1998",
-    specialty: "Guisos mineros tradicionales",
-    description: "Ambiente familiar con recetas transmitidas por generaciones de cocineras locales.",
-    rating: 4.6,
-    phone: "771 345 6789",
-    location: "Callejón de la Cruz #8"
-  },
-  {
-    name: "Barbacoa El Minero",
-    category: "Barbacoa Estilo Hidalgo",
-    since: "Desde 2005",
-    specialty: "Barbacoa de borrego y consomé",
-    description: "Auténtica barbacoa hidalguense preparada bajo tierra, tradición de los domingos familiares.",
-    rating: 4.8,
-    phone: "771 456 7890",
-    location: "Carretera Real del Monte Km 3"
-  }
-];
-
-const otherDishes = [
-  {
-    name: "Guiso de Res Minero",
-    description: "Carne de res cocida lentamente con verduras de la región, servida con arroz y frijoles."
-  },
-  {
-    name: "Truchas al Ajillo",
-    description: "Truchas frescas de las granjas locales preparadas al ajillo con hierbas de olor."
-  },
-  {
-    name: "Quesos de Vaso",
-    description: "Queso fresco tradicional de la región, acompañado de tortillas de comal."
-  },
-  {
-    name: "Dulces Típicos",
-    description: "Obleas de gajeta, jamoncillo, cocada y ate de frutas locales."
-  }
-];
-
 const GastronomiaPage = () => {
+  const [data, setData] = useState<ExploreData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [location, setLocation] = useState<{ lat: number; lon: number } | null>(null);
+
+  useEffect(() => {
+    // Try to get user location for nearby events
+    const fetchData = async (lat?: number, lon?: number) => {
+      try {
+        const params = lat && lon ? `?lat=${lat}&lon=${lon}` : "";
+        const response = await fetch(`/api/explore/theme/gastronomia${params}`);
+        const result = await response.json();
+        setData(result);
+      } catch (error) {
+        console.error("Error fetching gastronomia data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          setLocation({ lat: latitude, lon: longitude });
+          fetchData(latitude, longitude);
+        },
+        () => {
+          fetchData();
+        }
+      );
+    } else {
+      fetchData();
+    }
+  }, []);
+
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-b from-night-900 via-night-800 to-night-900">
         <Navbar />
         
-        {/* Hero */}
-        <div className="relative h-[60vh] min-h-[500px] overflow-hidden">
-          <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${pasteImg})` }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-black/40" />
-          <div className="absolute inset-0 flex items-end pb-20">
+        {/* Hero - New elegant design */}
+        <section className="relative min-h-[70vh] overflow-hidden">
+          {/* Background */}
+          <div className="absolute inset-0">
+            <div 
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+              style={{ backgroundImage: `url(${pasteImg})` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-night-900/70 via-night-800/60 to-night-900" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(212,178,106,0.2),transparent_50%)]" />
+          </div>
+
+          <div className="relative flex min-h-[70vh] items-end pb-20 pt-32">
             <div className="container mx-auto px-4 md:px-8">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
+                className="max-w-3xl"
               >
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold/20 text-gold text-sm font-medium mb-4">
-                  <Utensils className="w-4 h-4" />
-                  Cuna del Paste en México
-                </span>
-                <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-4">
-                  Gastronomía
+                {/* Badge */}
+                <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-gold-400/30 bg-gold-400/10 px-4 py-2 backdrop-blur-sm">
+                  <Utensils className="h-4 w-4 text-gold-400" />
+                  <span className="text-xs uppercase tracking-[0.25em] text-gold-400">
+                    Cuna del Paste en México
+                  </span>
+                </div>
+
+                <h1 className="mb-6 font-serif text-5xl leading-tight text-silver-300 md:text-6xl lg:text-7xl">
+                  Gastronomía de 
+                  <span className="block text-gold-400">Real del Monte</span>
                 </h1>
-                <p className="text-lg text-muted-foreground max-w-2xl">
-                  Descubre el único lugar en México donde la cocina cornish se fusionó con los sabores 
-                  tradicionales hidalguenses, creando el icónico paste mexicano.
+
+                <p className="max-w-2xl text-base leading-relaxed text-silver-400 md:text-lg">
+                  Sabores calientes en un pueblo frío: pastes humeantes, pan recién salido del horno 
+                  y mesas que se abren para quien llega. La única fusión cornish-mexicana del mundo.
                 </p>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-
-        {/* History of Paste */}
-        <section className="py-20">
-          <div className="container mx-auto px-4 md:px-8">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-              >
-                <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-6">
-                  La Historia del Paste
-                </h2>
-                <div className="space-y-4 text-muted-foreground leading-relaxed">
-                  <p>
-                    Cuando los mineros de Cornualles, Inglaterra llegaron a Real del Monte en 1824, 
-                    trajeron consigo una tradición gastronómica que cambiaría para siempre la cultura 
-                    culinaria de la región: el <strong>Cornish Pasty</strong>.
-                  </p>
-                  <p>
-                    Originalmente, el paste era la comida de trabajo perfecta para los mineros. Su 
-                    característica forma de media luna con un grueso borde de masa permitía que los 
-                    trabajadores sostuvieran su almuerzo con manos sucias de carbón y lo descartaran 
-                    después, protegiendo el contenido de contaminación.
-                  </p>
-                  <p>
-                    Con el tiempo, las familias mexicanas comenzaron a fusionar la receta original con 
-                    ingredientes locales. Así nacieron versiones con mole, frijoles, chile y otros 
-                    sabores típicamente mexicanos, creando un platillo único en el mundo que solo 
-                    existe en Real del Monte.
-                  </p>
-                </div>
-
-                <div className="mt-8 grid grid-cols-3 gap-4">
-                  <div className="text-center p-4 rounded-xl bg-gold/10">
-                    <div className="text-2xl font-bold text-gold">200+</div>
-                    <div className="text-xs text-muted-foreground">Años de historia</div>
-                  </div>
-                  <div className="text-center p-4 rounded-xl bg-gold/10">
-                    <div className="text-2xl font-bold text-gold">50+</div>
-                    <div className="text-xs text-muted-foreground">Variedades</div>
-                  </div>
-                  <div className="text-center p-4 rounded-xl bg-gold/10">
-                    <div className="text-2xl font-bold text-gold">15</div>
-                    <div className="text-xs text-muted-foreground">Pastelerías</div>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                className="relative"
-              >
-                <img 
-                  src={pasteImg}
-                  alt="Paste tradicional de Real del Monte"
-                  className="rounded-2xl shadow-elevated"
-                />
-                <div className="absolute -bottom-6 -left-6 glass rounded-xl p-4 shadow-lg max-w-xs">
-                  <div className="flex items-center gap-2 text-gold mb-1">
-                    <Star className="w-4 h-4 fill-current" />
-                    <span className="font-bold">Dato Curioso</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    El Museo del Paste en Real del Monte es el único en el mundo dedicado a esta delicia.
-                  </p>
-                </div>
               </motion.div>
             </div>
           </div>
         </section>
 
-        {/* Paste Types */}
-        <section className="py-20 bg-muted/30">
-          <div className="container mx-auto px-4 md:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-4">
-                Variedades de Paste
-              </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto">
-                Desde la receta original cornish hasta creaciones únicas de fusión mexicana
-              </p>
-            </motion.div>
+        {/* Live Events Section */}
+        {!loading && data?.liveEvents && data.liveEvents.length > 0 && (
+          <section className="border-b border-white/5 bg-night-800/50 py-8">
+            <div className="container mx-auto px-4 md:px-8">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="relative flex h-3 w-3">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500" />
+                  </span>
+                  <h2 className="text-xs uppercase tracking-[0.3em] text-gold-400">
+                    Hoy cerca de ti
+                  </h2>
+                </div>
+                {location && (
+                  <span className="text-[10px] text-silver-500">
+                    Usando tu ubicación
+                  </span>
+                )}
+              </div>
+              <div className="scrollbar-thin scrollbar-thumb-gold-400/20 flex gap-4 overflow-x-auto pb-2">
+                {data.liveEvents.map((event) => (
+                  <LiveEventBadge key={event.id} event={event} />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Narrative Blocks from API */}
+        {data?.section?.blocks && data.section.blocks.length > 0 ? (
+          <section className="py-20">
+            <div className="container mx-auto max-w-4xl px-4 md:px-8">
+              <div className="space-y-12">
+                {data.section.blocks.map((block, index) => (
+                  <motion.article
+                    key={block.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                    className="relative overflow-hidden rounded-3xl border border-white/8 bg-white/[0.03] p-8 backdrop-blur-xl md:p-10"
+                  >
+                    {/* Decorative gradient */}
+                    <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-gold-400/10 blur-3xl" />
+                    
+                    <header className="relative mb-6">
+                      <h2 className="font-serif text-2xl text-silver-300 md:text-3xl">
+                        {block.title}
+                      </h2>
+                      {block.subtitle && (
+                        <p className="mt-2 text-sm text-silver-500">
+                          {block.subtitle}
+                        </p>
+                      )}
+                    </header>
+
+                    <p className="relative whitespace-pre-line text-sm leading-relaxed text-silver-400/95">
+                      {block.body}
+                    </p>
+
+                    {/* Recommendations */}
+                    {block.recommendations.length > 0 && (
+                      <section className="relative mt-8 border-t border-white/10 pt-6">
+                        <p className="mb-4 text-[11px] uppercase tracking-[0.25em] text-silver-500">
+                          Lugares donde este capítulo se vuelve real
+                        </p>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {block.recommendations.map((rec) => (
+                            <div
+                              key={rec.id}
+                              className="group rounded-2xl border border-white/10 bg-night-900/60 p-4 transition-colors hover:border-gold-400/50"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h3 className="font-medium text-silver-300 group-hover:text-gold-400 transition-colors">
+                                    {rec.business.name}
+                                  </h3>
+                                  <p className="text-xs text-silver-500">
+                                    {rec.business.category}
+                                  </p>
+                                </div>
+                                {rec.business.isPremium && (
+                                  <Sparkles className="h-4 w-4 text-gold-400" />
+                                )}
+                              </div>
+                              {rec.reason && (
+                                <p className="mt-2 text-xs text-silver-500 italic">
+                                  &ldquo;{rec.reason}&rdquo;
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+                  </motion.article>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : (
+          /* Fallback: History of Paste (when no API data) */
+          <section className="py-20">
+            <div className="container mx-auto px-4 md:px-8">
+              <div className="grid items-center gap-12 lg:grid-cols-2">
+                <motion.div
+                  initial={{ opacity: 0, x: -30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                >
+                  <h2 className="mb-6 font-serif text-3xl text-silver-300 md:text-4xl">
+                    La Historia del Paste
+                  </h2>
+                  <div className="space-y-4 text-sm leading-relaxed text-silver-400">
+                    <p>
+                      Cuando los mineros de Cornualles, Inglaterra llegaron a Real del Monte en 1824, 
+                      trajeron consigo una tradición gastronómica que cambiaría para siempre la cultura 
+                      culinaria de la región: el <strong className="text-gold-400">Cornish Pasty</strong>.
+                    </p>
+                    <p>
+                      Originalmente, el paste era la comida de trabajo perfecta para los mineros. Su 
+                      característica forma de media luna con un grueso borde de masa permitía que los 
+                      trabajadores sostuvieran su almuerzo con manos sucias de carbón y lo descartaran 
+                      después, protegiendo el contenido de contaminación.
+                    </p>
+                    <p>
+                      Con el tiempo, las familias mexicanas comenzaron a fusionar la receta original con 
+                      ingredientes locales. Así nacieron versiones con mole, frijoles, chile y otros 
+                      sabores típicamente mexicanos, creando un platillo único en el mundo que solo 
+                      existe en Real del Monte.
+                    </p>
+                  </div>
+
+                  <div className="mt-8 grid grid-cols-3 gap-4">
+                    <div className="rounded-xl border border-gold-400/20 bg-gold-400/5 p-4 text-center">
+                      <div className="font-serif text-2xl text-gold-400">200+</div>
+                      <div className="text-[10px] uppercase tracking-wider text-silver-500">Años de historia</div>
+                    </div>
+                    <div className="rounded-xl border border-gold-400/20 bg-gold-400/5 p-4 text-center">
+                      <div className="font-serif text-2xl text-gold-400">50+</div>
+                      <div className="text-[10px] uppercase tracking-wider text-silver-500">Variedades</div>
+                    </div>
+                    <div className="rounded-xl border border-gold-400/20 bg-gold-400/5 p-4 text-center">
+                      <div className="font-serif text-2xl text-gold-400">15</div>
+                      <div className="text-[10px] uppercase tracking-wider text-silver-500">Pastelerías</div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: 30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  className="relative"
+                >
+                  <div className="relative overflow-hidden rounded-3xl border border-white/10 shadow-[0_18px_60px_rgba(0,0,0,0.5)]">
+                    <img 
+                      src={pasteImg}
+                      alt="Paste tradicional de Real del Monte"
+                      className="w-full"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-night-900/80 via-transparent to-transparent" />
+                  </div>
+                  <div className="absolute -bottom-6 -left-6 rounded-xl border border-white/10 bg-night-800/90 p-4 shadow-lg backdrop-blur-md">
+                    <div className="flex items-center gap-2 text-gold-400 mb-1">
+                      <Sparkles className="h-4 w-4" />
+                      <span className="text-sm font-semibold">Dato Curioso</span>
+                    </div>
+                    <p className="max-w-[200px] text-xs text-silver-400">
+                      El Museo del Paste en Real del Monte es el único en el mundo dedicado a esta delicia.
+                    </p>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Paste Types Grid */}
+        <section className="border-y border-white/5 bg-night-800/30 py-20">
+          <div className="container mx-auto px-4 md:px-8">
+            <SectionHeader
+              title="Variedades de Paste"
+              subtitle="Desde la receta original cornish hasta creaciones únicas de fusión mexicana"
+            />
+
+            <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {pasteTypes.map((paste, index) => (
                 <motion.div
                   key={paste.name}
@@ -247,27 +382,27 @@ const GastronomiaPage = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
-                  className="glass rounded-2xl p-6 shadow-card hover:shadow-elevated transition-all"
+                  className="group rounded-2xl border border-white/8 bg-white/[0.03] p-6 transition-all hover:border-gold-400/30 hover:bg-white/[0.05]"
                 >
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="mb-4 flex items-start justify-between">
                     <div>
-                      <h3 className="font-serif text-lg font-bold text-foreground mb-1">
+                      <h3 className="font-serif text-lg text-silver-300 group-hover:text-gold-400 transition-colors">
                         {paste.name}
                       </h3>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      <span className={`mt-1 inline-block text-[10px] uppercase tracking-wider ${
                         paste.isTraditional 
-                          ? "bg-gold/20 text-gold" 
-                          : "bg-muted text-muted-foreground"
+                          ? "text-gold-400" 
+                          : "text-silver-500"
                       }`}>
                         {paste.origin}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 text-gold">
-                      <Star className="w-4 h-4 fill-current" />
-                      <span className="text-sm font-medium">{paste.rating}</span>
+                    <div className="flex items-center gap-1 text-gold-400">
+                      <Star className="h-3 w-3 fill-current" />
+                      <span className="text-sm">{paste.rating}</span>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <p className="text-sm leading-relaxed text-silver-500">
                     {paste.description}
                   </p>
                 </motion.div>
@@ -276,114 +411,122 @@ const GastronomiaPage = () => {
           </div>
         </section>
 
-        {/* Restaurants */}
+        {/* Businesses from API or Fallback */}
         <section className="py-20">
           <div className="container mx-auto px-4 md:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-4">
-                Dónde Comer
-              </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto">
-                Los mejores lugares para disfrutar la gastronomía local
-              </p>
-            </motion.div>
+            <SectionHeader
+              title="Dónde Comer"
+              subtitle="Los mejores lugares para disfrutar la gastronomía local"
+            />
 
-            <div className="grid md:grid-cols-2 gap-6">
-              {restaurants.map((restaurant, index) => (
+            <div className="mt-12 grid gap-6 md:grid-cols-2">
+              {(data?.businesses || []).slice(0, 6).map((business, index) => (
                 <motion.div
-                  key={restaurant.name}
+                  key={business.id}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
-                  className="glass rounded-2xl p-6 shadow-card hover:shadow-elevated transition-all"
+                  className="group rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-all hover:border-gold-400/30"
                 >
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="mb-4 flex items-start justify-between">
                     <div>
-                      <h3 className="font-serif text-xl font-bold text-foreground mb-1">
-                        {restaurant.name}
+                      <h3 className="font-serif text-xl text-silver-300 group-hover:text-gold-400 transition-colors">
+                        {business.name}
                       </h3>
-                      <span className="text-sm text-muted-foreground">{restaurant.category}</span>
+                      <span className="text-sm text-silver-500">{business.category}</span>
                     </div>
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gold/10 text-gold">
-                      <Star className="w-4 h-4 fill-current" />
-                      <span className="text-sm font-medium">{restaurant.rating}</span>
-                    </div>
+                    {business.isPremium && (
+                      <Sparkles className="h-5 w-5 text-gold-400" />
+                    )}
                   </div>
 
-                  <p className="text-muted-foreground text-sm mb-4">
-                    {restaurant.description}
+                  <p className="mb-4 text-sm text-silver-400">
+                    {business.description}
                   </p>
 
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-sm">
-                      <ChefHat className="w-4 h-4 text-terracotta" />
-                      <span className="text-muted-foreground">Especialidad: </span>
-                      <span className="font-medium text-foreground">{restaurant.specialty}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="w-4 h-4 text-terracotta" />
-                      <span className="text-muted-foreground">{restaurant.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="w-4 h-4 text-terracotta" />
-                      <span className="text-muted-foreground">{restaurant.since}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-border flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">{restaurant.phone}</span>
-                    <button className="px-4 py-2 rounded-lg bg-terracotta text-white text-sm font-medium hover:bg-terracotta/90 transition-colors">
-                      Ver menú
-                    </button>
+                  <div className="space-y-2">
+                    {business.address && (
+                      <div className="flex items-center gap-2 text-sm text-silver-500">
+                        <MapPin className="h-4 w-4 text-gold-400/60" />
+                        <span>{business.address}</span>
+                      </div>
+                    )}
+                    {business.phone && (
+                      <div className="flex items-center gap-2 text-sm text-silver-500">
+                        <Navigation className="h-4 w-4 text-gold-400/60" />
+                        <span>{business.phone}</span>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               ))}
             </div>
+
+            {(!data?.businesses || data.businesses.length === 0) && (
+              <div className="mt-12 text-center text-silver-500">
+                <p>Próximamente: descubre los mejores restaurantes y pastelerías de Real del Monte</p>
+              </div>
+            )}
           </div>
         </section>
 
-        {/* Other Dishes */}
-        <section className="py-20 bg-muted/30">
-          <div className="container mx-auto px-4 md:px-8">
+        {/* Routes Section */}
+        {data?.routes && data.routes.length > 0 && (
+          <section className="border-t border-white/5 bg-night-800/30 py-20">
+            <div className="container mx-auto px-4 md:px-8">
+              <SectionHeader
+                title="Rutas Gastronómicas"
+                subtitle="Recorridos diseñados para saborear lo mejor del pueblo"
+              />
+
+              <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {data.routes.map((route, index) => (
+                  <motion.div
+                    key={route.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] p-6"
+                  >
+                    <h3 className="mb-2 font-serif text-xl text-silver-300">{route.name}</h3>
+                    <p className="mb-4 text-sm text-silver-500">{route.description}</p>
+                    <div className="flex items-center gap-4 text-xs text-silver-500">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {route.durationMinutes} min
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {route.stops?.length || 0} paradas
+                      </span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* CTA Section */}
+        <section className="relative overflow-hidden py-20">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(212,178,106,0.1),transparent_70%)]" />
+          <div className="container relative mx-auto px-4 text-center md:px-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center mb-16"
             >
-              <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-4">
-                Otros Sabores de la Región
+              <Flame className="mx-auto mb-6 h-12 w-12 text-gold-400" />
+              <h2 className="mb-4 font-serif text-3xl text-silver-300 md:text-4xl">
+                ¿Tienes hambre de aventura?
               </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto">
-                Más delicias que no puedes dejar de probar
+              <p className="mx-auto mb-8 max-w-xl text-silver-500">
+                Pregunta a REALITO por recomendaciones personalizadas basadas en tu ubicación 
+                y descubre los secretos culinarios del pueblo.
               </p>
             </motion.div>
-
-            <div className="grid sm:grid-cols-2 gap-6">
-              {otherDishes.map((dish, index) => (
-                <motion.div
-                  key={dish.name}
-                  initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  className="flex gap-4 p-4 rounded-xl bg-background shadow-card"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-terracotta/10 flex items-center justify-center flex-shrink-0">
-                    <Coffee className="w-6 h-6 text-terracotta" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-1">{dish.name}</h3>
-                    <p className="text-sm text-muted-foreground">{dish.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
           </div>
         </section>
 
