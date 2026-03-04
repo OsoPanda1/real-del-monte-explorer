@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { NotificationProvider } from "@/components/NotificationSystem";
-import { AuthProvider } from "./contexts/AuthContext";
 import Index from "./pages/Index";
 import Lugares from "./pages/Lugares";
 import Directorio from "./pages/Directorio";
@@ -60,12 +59,10 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <AuthProvider>
-            <BrowserRouter>
-              <AnimatedRoutes />
-              <RealitoChat />
-            </BrowserRouter>
-          </AuthProvider>
+          <BrowserRouter>
+            <AnimatedRoutes />
+            <RealitoChat />
+          </BrowserRouter>
         </TooltipProvider>
       </NotificationProvider>
     </QueryClientProvider>

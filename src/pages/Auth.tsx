@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,15 +8,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import PageTransition from '@/components/PageTransition';
 import { Loader2, Mail, Lock, User } from 'lucide-react';
+import { authApi } from '../lib/api';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'login';
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, signup } = useAuth();
   const { toast } = useToast();
-
+  
+  // Use authApi directly to handle API errors gracefully
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
 
@@ -26,7 +26,9 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      await login(loginData.email, loginData.password);
+      const response = await authApi.login(loginData);
+      localStorage.setItem('rdm_token', response.data.token);
+      localStorage.setItem('rdm_user', JSON.stringify(response.data.user));
       toast({
         title: '¡Bienvenido!',
         description: 'Has iniciado sesión correctamente.',
@@ -35,7 +37,7 @@ const Auth = () => {
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Error al iniciar sesión.',
+        description: error.message || 'Error al iniciar sesión. Intenta más tarde.',
         variant: 'destructive',
       });
     } finally {
@@ -58,7 +60,13 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      await signup(signupData.name, signupData.email, signupData.password);
+      const response = await authApi.signup({
+        name: signupData.name,
+        email: signupData.email,
+        password: signupData.password
+      });
+      localStorage.setItem('rdm_token', response.data.token);
+      localStorage.setItem('rdm_user', JSON.stringify(response.data.user));
       toast({
         title: '¡Cuenta creada!',
         description: 'Bienvenido a RDM Digital.',
@@ -67,7 +75,7 @@ const Auth = () => {
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Error al crear la cuenta.',
+        description: error.message || 'Error al crear la cuenta. Intenta más tarde.',
         variant: 'destructive',
       });
     } finally {

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { paymentsApi } from '../lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +12,8 @@ import { Heart, Star, Zap, Loader2, CheckCircle } from 'lucide-react';
 
 const Apoya = () => {
   const [searchParams] = useSearchParams();
-  const { user, isAuthenticated } = useAuth();
+  // Check localStorage for auth status
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [donationAmount, setDonationAmount] = useState('100');
@@ -25,6 +25,10 @@ const Apoya = () => {
   const predefinedAmounts = ['50', '100', '250', '500', '1000'];
 
   useEffect(() => {
+    // Check if user is authenticated from localStorage
+    const token = localStorage.getItem('rdm_token');
+    setIsAuthenticated(!!token);
+    
     if (success) {
       toast({
         title: '¡Gracias por tu apoyo! 🙏',
