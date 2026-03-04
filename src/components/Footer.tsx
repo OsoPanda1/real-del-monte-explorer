@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { MapPin, Mail, Phone, Send, Loader2, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import logoRdm from "@/assets/logo-rdm.png";
