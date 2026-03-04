@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { NotificationProvider } from "@/components/NotificationSystem";
 import Index from "./pages/Index";
 import Lugares from "./pages/Lugares";
 import Directorio from "./pages/Directorio";
@@ -16,6 +17,7 @@ import Relatos from "./pages/Relatos";
 import Ecoturismo from "./pages/Ecoturismo";
 import Gastronomia from "./pages/Gastronomia";
 import Arte from "./pages/Arte";
+import Rutas from "./pages/Rutas";
 import NotFound from "./pages/NotFound";
 import RealitoChat from "./components/RealitoChat";
 
@@ -38,6 +40,7 @@ const AnimatedRoutes = () => {
         <Route path="/ecoturismo" element={<Ecoturismo />} />
         <Route path="/gastronomia" element={<Gastronomia />} />
         <Route path="/arte" element={<Arte />} />
+        <Route path="/rutas" element={<Rutas />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>
@@ -46,14 +49,16 @@ const AnimatedRoutes = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AnimatedRoutes />
-        <RealitoChat />
-      </BrowserRouter>
-    </TooltipProvider>
+    <NotificationProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AnimatedRoutes />
+          <RealitoChat />
+        </BrowserRouter>
+      </TooltipProvider>
+    </NotificationProvider>
   </QueryClientProvider>
 );
 

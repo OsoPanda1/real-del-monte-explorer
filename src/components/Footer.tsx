@@ -79,9 +79,18 @@ const Footer = () => {
         </div>
 
         <div className="mt-12 pt-8 text-center" style={{ borderTop: "1px solid hsla(36, 60%, 96%, 0.08)" }}>
-          <p className="text-xs text-primary-foreground/30">
+          <p className="text-xs text-primary-foreground/30 mb-2">
             © 2026 RDM Digital. Hecho con ❤️ para Real del Monte, Pueblo Mágico.
           </p>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6">
+            <p className="text-xs text-gold/60">
+              Proyecto creado con amor ♥ Tecnología TAMV Online
+            </p>
+            <span className="hidden md:inline text-primary-foreground/20">|</span>
+            <p className="text-xs text-terracotta/60 font-medium">
+              Orgullosamente Realmontenses
+            </p>
+          </div>
         </div>
       </div>
     </footer>
