@@ -4,10 +4,6 @@ import BusinessCard from "@/components/BusinessCard";
 import PageTransition from "@/components/PageTransition";
 import { motion } from "framer-motion";
 
-// API Hooks
-import { useBusinesses } from "@/features/businesses";
-
-// Fallback images
 import pasteImg from "@/assets/paste.webp";
 import panteonImg from "@/assets/panteon-ingles.webp";
 import minaImg from "@/assets/mina-acosta.webp";
@@ -17,11 +13,18 @@ import rdm2 from "@/assets/rdm2.jpeg";
 import rdm3 from "@/assets/rdm01.jpg";
 import rdm4 from "@/assets/rdm02.jpg";
 
-const defaultImages = [pasteImg, panteonImg, minaImg, callesImg, rdm1, rdm2, rdm3, rdm4];
+const businesses = [
+  { name: "Pastes El Portal", category: "Pastes", description: "Los pastes más tradicionales desde 1985. Sabores clásicos y nuevas creaciones.", image: pasteImg, isPremium: true, rating: 4.9, phone: "771 123 4567" },
+  { name: "Hotel Real de Minas", category: "Hospedaje", description: "Hotel boutique en casona colonial restaurada con vista a la montaña.", image: callesImg, isPremium: true, rating: 4.7, phone: "771 234 5678" },
+  { name: "Tours Mineros RDM", category: "Tours", description: "Recorridos guiados por las minas históricas con expertos en historia local.", image: minaImg, isPremium: false, rating: 4.5 },
+  { name: "Café La Neblina", category: "Restaurante", description: "Café artesanal de altura con los mejores postres y vista al bosque.", image: rdm1, isPremium: false, rating: 4.4 },
+  { name: "Artesanías del Monte", category: "Souvenir", description: "Artesanías locales, textiles y recuerdos auténticos hechos a mano.", image: rdm2, isPremium: true, rating: 4.6, phone: "771 345 6789" },
+  { name: "Posada La Escondida", category: "Hospedaje", description: "Cabañas rústicas entre pinos con chimenea y desayuno incluido.", image: rdm3, isPremium: false, rating: 4.3 },
+  { name: "La Casona Hostal", category: "Hospedaje", description: "Alojamiento económico en el corazón del centro histórico.", image: rdm4, isPremium: false, rating: 4.2 },
+  { name: "Restaurant Los Murmullos", category: "Restaurante", description: "Comida tradicional hidalguense con ingredientes locales frescos.", image: panteonImg, isPremium: true, rating: 4.5 },
+];
 
 const DirectorioPage = () => {
-  // API Data
-  const { data: businesses, isLoading } = useBusinesses();
   return (
     <PageTransition>
       <div className="min-h-screen bg-background">
@@ -33,10 +36,8 @@ const DirectorioPage = () => {
               <p className="text-muted-foreground max-w-lg">Comercios, hoteles, restaurantes y servicios recomendados por la comunidad.</p>
             </motion.div>
             <div className="grid md:grid-cols-2 gap-4">
-              {isLoading ? (
-                <div className="col-span-2 text-center py-12">Cargando negocios...</div>
-              ) : (businesses || []).map((biz, i) => (
-                <BusinessCard key={biz.id || biz.name} {...biz} index={i} imageUrl={biz.imageUrl || defaultImages[i % defaultImages.length]} />
+              {businesses.map((biz, i) => (
+                <BusinessCard key={biz.name} {...biz} index={i} />
               ))}
             </div>
           </div>

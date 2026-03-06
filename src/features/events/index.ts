@@ -107,4 +107,5 @@ export function useFeatureEvent() {
   });
 }
 
-// Hooks are already exported at the top of this file
+// Export page component
+export { default as EventsPage } from './EventsPage';

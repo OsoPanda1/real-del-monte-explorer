@@ -4,10 +4,6 @@ import PlaceCard from "@/components/PlaceCard";
 import PageTransition from "@/components/PageTransition";
 import { motion } from "framer-motion";
 
-// API Hooks
-import { usePlaces } from "@/features/places";
-
-// Fallback images
 import pasteImg from "@/assets/paste.webp";
 import panteonImg from "@/assets/panteon-ingles.webp";
 import minaImg from "@/assets/mina-acosta.webp";
@@ -17,11 +13,18 @@ import heroImg from "@/assets/hero-real-del-monte.webp";
 import rdm1 from "@/assets/rdm1.jpeg";
 import rdm2 from "@/assets/rdm2.jpeg";
 
-const defaultImages = [pasteImg, panteonImg, minaImg, penasImg, callesImg, heroImg, rdm1, rdm2];
+const allPlaces = [
+  { name: "Mina de Acosta", category: "Mina", description: "Desciende 450 metros bajo tierra en esta mina del siglo XVIII. Recorre los túneles donde mineros ingleses y mexicanos forjaron la historia de la plata.", image: minaImg, rating: 4.8 },
+  { name: "Panteón Inglés", category: "Museo", description: "Un cementerio único con cruces celtas entre pinos y neblina. Testimonio de la comunidad inglesa que llegó en el siglo XIX.", image: panteonImg, rating: 4.7 },
+  { name: "Peñas Cargadas", category: "Naturaleza", description: "Formaciones rocosas gigantes en equilibrio imposible. Senderismo entre bosque de niebla con vistas panorámicas del valle.", image: penasImg, rating: 4.9 },
+  { name: "Callejones Coloniales", category: "Cultura", description: "Calles empedradas con fachadas coloridas, balcones con flores y tiendas artesanales.", image: callesImg, rating: 4.6 },
+  { name: "Plaza Principal", category: "Cultura", description: "El corazón del pueblo mágico. Punto de encuentro con vista a la Parroquia y rodeada de negocios locales.", image: heroImg, rating: 4.5 },
+  { name: "Museo del Paste", category: "Museo", description: "Conoce la historia del paste, su origen inglés y cómo se convirtió en el platillo emblemático de Real del Monte.", image: pasteImg, rating: 4.6 },
+  { name: "Parroquia de la Asunción", category: "Cultura", description: "Templo colonial del siglo XVIII con arquitectura barroca y vista panorámica del pueblo.", image: rdm1, rating: 4.4 },
+  { name: "Mirador La Cruz", category: "Naturaleza", description: "Punto de observación con vistas panorámicas de 360° del pueblo y la Sierra de Pachuca.", image: rdm2, rating: 4.5 },
+];
 
 const LugaresPage = () => {
-  // API Data
-  const { data: places, isLoading } = usePlaces();
   return (
     <PageTransition>
       <div className="min-h-screen bg-background">
@@ -33,10 +36,8 @@ const LugaresPage = () => {
               <p className="text-muted-foreground max-w-lg">Descubre los rincones más emblemáticos de Real del Monte, desde minas históricas hasta bosques de niebla.</p>
             </motion.div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {isLoading ? (
-                <div className="col-span-3 text-center py-12">Cargando lugares...</div>
-              ) : (places || []).map((place, i) => (
-                <PlaceCard key={place.id || place.name} {...place} index={i} imageUrl={place.imageUrl || defaultImages[i % defaultImages.length]} />
+              {allPlaces.map((place, i) => (
+                <PlaceCard key={place.name} {...place} index={i} />
               ))}
             </div>
           </div>
