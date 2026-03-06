@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { paymentsApi } from '../lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,12 +9,15 @@ import { useToast } from '@/components/ui/use-toast';
 import PageTransition from '@/components/PageTransition';
 import { Heart, Star, Zap, Loader2, CheckCircle } from 'lucide-react';
 
+// API Hooks
+import { useDonationCheckout } from '@/lib/hooks';
+import { useAuth } from '@/features/auth/AuthContext';
+
 const Apoya = () => {
   const [searchParams] = useSearchParams();
-  // Check localStorage for auth status
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const { mutateAsync: createDonation, isPending: loading } = useDonationCheckout();
   const [donationAmount, setDonationAmount] = useState('100');
   const [customAmount, setCustomAmount] = useState('');
   const [donationType, setDonationType] = useState<'app' | 'business'>('app');
@@ -25,10 +27,6 @@ const Apoya = () => {
   const predefinedAmounts = ['50', '100', '250', '500', '1000'];
 
   useEffect(() => {
-    // Check if user is authenticated from localStorage
-    const token = localStorage.getItem('rdm_token');
-    setIsAuthenticated(!!token);
-    
     if (success) {
       toast({
         title: '¡Gracias por tu apoyo! 🙏',
@@ -55,25 +53,20 @@ const Apoya = () => {
       return;
     }
 
-    setLoading(true);
-
     try {
-      const response = await paymentsApi.createCheckoutSession({
-        toType: donationType,
+      const response = await createDonation({
         amount: parseFloat(amount),
-        currency: 'MXN',
-        message: 'Donación desde RDM Digital',
+        isMonthly: donationType === 'app',
       });
 
       // Redirect to payment page
-      window.location.href = response.data.url;
+      window.location.href = response.url;
     } catch (error: any) {
       toast({
         title: 'Error',
         description: error.message || 'Error al procesar la donación.',
         variant: 'destructive',
       });
-      setLoading(false);
     }
   };
 
