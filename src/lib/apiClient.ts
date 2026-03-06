@@ -137,6 +137,7 @@ export const queryKeys = {
     list: (filters: Record<string, any>) => [...businesses.lists(), filters] as const,
     detail: (id: string) => [...businesses.all, 'detail', id] as const,
     categories: () => [...businesses.all, 'categories'] as const,
+    featured: () => [...businesses.all, 'featured'] as const,
   },
   events: {
     all: ['events'] as const,
@@ -154,16 +155,35 @@ export const queryKeys = {
   posts: {
     all: ['posts'] as const,
     lists: () => [...posts.all, 'list'] as const,
+    list: (filters: Record<string, any>) => [...posts.lists(), filters] as const,
     detail: (id: string) => [...posts.all, 'detail', id] as const,
+    featured: () => [...posts.all, 'featured'] as const,
+  },
+  dichos: {
+    all: ['dichos'] as const,
+    lists: () => [...dichos.all, 'list'] as const,
+    list: (filters: Record<string, any>) => [...dichos.lists(), filters] as const,
+    detail: (id: string) => [...dichos.all, 'detail', id] as const,
+  },
+  newsletter: {
+    subscribers: () => ['newsletter', 'subscribers'] as const,
+  },
+  payments: {
+    config: () => ['payments', 'config'] as const,
+    donations: () => ['payments', 'donations'] as const,
+    checkout: (type: string) => ['payments', 'checkout', type] as const,
+  },
+  admin: {
+    stats: () => ['admin', 'stats'] as const,
+    businesses: () => ['admin', 'businesses'] as const,
+    business: (id: string) => ['admin', 'businesses', id] as const,
+    posts: () => ['admin', 'posts'] as const,
+    users: () => ['admin', 'users'] as const,
   },
   ai: {
     sessions: () => ['ai', 'sessions'] as const,
     session: (id: string) => ['ai', 'sessions', id] as const,
     info: () => ['ai', 'info'] as const,
-  },
-  payments: {
-    config: () => ['payments', 'config'] as const,
-    donations: () => ['payments', 'donations'] as const,
   },
   seo: {
     meta: (type: string, id?: string) => ['seo', 'meta', type, id] as const,
@@ -177,5 +197,9 @@ const businesses = queryKeys.businesses;
 const events = queryKeys.events;
 const routes = queryKeys.routes;
 const posts = queryKeys.posts;
+const dichos = queryKeys.dichos;
+const newsletter = queryKeys.newsletter;
+const payments = queryKeys.payments;
+const admin = queryKeys.admin;
 
-export { places, businesses, events, routes, posts };
+export { places, businesses, events, routes, posts, dichos, newsletter, payments, admin };
