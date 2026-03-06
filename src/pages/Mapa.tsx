@@ -8,11 +8,18 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 
+// API Hooks
+import { usePlaces } from "@/features/places";
+import { useBusinesses } from "@/features/businesses";
+
+// Fallback images
 import pasteImg from "@/assets/paste.webp";
 import minaImg from "@/assets/mina-acosta.webp";
 import panteonImg from "@/assets/panteon-ingles.webp";
 import penasImg from "@/assets/penas-cargadas.webp";
 import callesImg from "@/assets/calles-colonial.webp";
+
+const defaultImages = [pasteImg, minaImg, panteonImg, penasImg, callesImg];
 
 interface MapMarkerData {
   id: string;
@@ -85,6 +92,36 @@ function FitBounds({ markers }: { markers: MapMarkerData[] }) {
 const MapaPage = () => {
   const [selected, setSelected] = useState<MapMarkerData | null>(null);
   const [filter, setFilter] = useState<"all" | "place" | "business">("all");
+
+  // API Data
+  const { data: places } = usePlaces();
+  const { data: businesses } = useBusinesses();
+
+  // Combine places and businesses into markers
+  const markers: MapMarkerData[] = [
+    ...(places || []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      lat: p.lat,
+      lng: p.lng,
+      description: p.description || "",
+      image: p.imageUrl || defaultImages[0],
+      type: "place" as const,
+    })),
+    ...(businesses || []).map((b) => ({
+      id: b.id,
+      name: b.name,
+      category: b.category,
+      lat: b.latitude || 20.1380,
+      lng: b.longitude || -98.6735,
+      description: b.description || "",
+      image: b.imageUrl || defaultImages[0],
+      type: "business" as const,
+      isPremium: b.isPremium,
+      phone: b.phone,
+    })),
+  ];
 
   const filtered = markers.filter((m) =>
     filter === "all" ? true : m.type === filter
