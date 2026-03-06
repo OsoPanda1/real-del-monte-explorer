@@ -3,7 +3,8 @@ import { useRef } from "react";
 import { 
   Clock, Pickaxe, Flag, Users, Ship, Church, BookOpen, 
   Mountain, Gem, Crown, Scroll, Anchor, Compass, Flame,
-  Building2, Scale, Landmark, Sparkles, MapPin
+  Building2, Scale, Landmark, Sparkles, MapPin, Ghost, AlertTriangle,
+  Eye, Shield, Heart, Calendar
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -11,6 +12,7 @@ import PageTransition from "@/components/PageTransition";
 import { TextReveal, ParallaxImage, StaggerContainer, StaggerItem } from "@/components/VisualEffects";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { VideoGallery } from "@/components/VideoGallery";
 import { ImageGallery } from "@/components/ImageGallery";
 
@@ -218,6 +220,13 @@ Las formaciones rocosas como las Peñas Cargadas son testimonios geológicos de 
 
 // Historical figures
 const historicalFigures = [
+  {
+    name: "Ricardo Bell",
+    role: "El Payaso que Hizo Reír a la Dictadura",
+    period: "1881-1911",
+    description: "Richard Bell Guest, el clown inglés que revolucionó el entretenimiento en México Porfiriano. Su personaje 'El Huácaro' hizo reír incluso al General Porfirio Díaz.",
+    contribution: "Fundó el Gran Circo Bell y democratizó la risa en una época de represión. Su leyenda persiste en la tumba 55 del Panteón Inglés."
+  },
   {
     name: "Pedro Romero de Terreros",
     role: "Empresario Minero",
@@ -618,6 +627,208 @@ const HistoriaPage = () => {
                 </StaggerItem>
               ))}
             </StaggerContainer>
+          </div>
+        </section>
+
+        {/* Ricardo Bell Legend Section */}
+        <section className="py-24 bg-gradient-to-b from-background via-slate-950/20 to-background">
+          <div className="container mx-auto px-4 md:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-16"
+            >
+              <span className="text-purple-500 text-sm font-medium uppercase tracking-wider flex items-center justify-center gap-2">
+                <Ghost className="w-4 h-4" />
+                Leyenda Urbana
+              </span>
+              <h2 className="font-serif text-4xl md:text-5xl font-bold text-foreground mt-2 mb-4">
+                El Cisma de la Carcajada
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                La anatomía del mito de Ricardo Bell y la tumba apóstata del Panteón Inglés
+              </p>
+            </motion.div>
+
+            <div className="max-w-4xl mx-auto">
+              {/* Chapter I */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="mb-12"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                    <span className="text-purple-500 font-serif font-bold">I</span>
+                  </div>
+                  <h3 className="font-serif text-2xl font-bold text-foreground">
+                    El Engendro de Deptford y el Exilio de la Pantomima
+                  </h3>
+                </div>
+                <div className="glass rounded-2xl p-6 ml-13">
+                  <p className="text-muted-foreground leading-relaxed mb-4">
+                    <strong className="text-foreground">Inglaterra, 1858.</strong> El humo industrial de Deptford asfixiaba los pulmones del proletariado victoriano. En este vientre de hollín nació Richard Bell Guest, hijo de James Bell, un clown itinerante escocés, y Emilia Guest, de sangre irlandesa.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Debutó a los dos años en Lyon, Francia. A lomos del Circo Chiarini en 1861, recorrió una Europa fragmentada. La Inglaterra de la Revolución Industrial era una maquinaria devoradora de almas. Para la élite británica, el payaso no era un artista; era un bufón despreciable.
+                  </p>
+                  <div className="mt-4 p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    <p className="text-sm text-purple-400 font-medium">
+                      <Calendar className="w-4 h-4 inline mr-2" />
+                      1881: Bell cruza el Atlántico y arriba al México Porfiriano
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Chapter II */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="mb-12"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                    <span className="text-purple-500 font-serif font-bold">II</span>
+                  </div>
+                  <h3 className="font-serif text-2xl font-bold text-foreground">
+                    El "Huácaro" que Hizo Reír al Dictador
+                  </h3>
+                </div>
+                <div className="glass rounded-2xl p-6 ml-13">
+                  <p className="text-muted-foreground leading-relaxed mb-4">
+                    Bell no fue un payaso convencional. Descartó la estridencia del clown rojo para abrazar al Pierrot melancólico. Se maquilló de blanco espectral, vistió el traje holgado y nació el <em>"huácaro"</em>. Su comedia no era de pastelazos, sino de crítica social finísima.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed mb-4">
+                    Con el Circo Orrín, Bell se convirtió en una deidad popular. <strong>Juan de Dios Peza</strong>, en <em>El Monitor Republicano</em>, sentenció: <em>"Es más popular que el pulque"</em>. Llenaba plazas enteras. Incluso el <strong>General Porfirio Díaz</strong>, un hombre de semblante pétreo, acudía a su palco solo para doblegarse ante la risa.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Badge variant="outline" className="border-purple-500/50 text-purple-400">
+                      <Crown className="w-3 h-3 mr-1" /> Favorito del Dictador
+                    </Badge>
+                    <Badge variant="outline" className="border-purple-500/50 text-purple-400">
+                      <Heart className="w-3 h-3 mr-1" /> Ícono Popular
+                    </Badge>
+                    <Badge variant="outline" className="border-purple-500/50 text-purple-400">
+                      <Building2 className="w-3 h-3 mr-1" /> Gran Circo Bell (1907)
+                    </Badge>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Chapter III - The Legend */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="mb-12"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                    <span className="text-amber-500 font-serif font-bold">III</span>
+                  </div>
+                  <h3 className="font-serif text-2xl font-bold text-foreground">
+                    El Espejismo Cornish y el Pacto de la Neblina
+                  </h3>
+                </div>
+                <div className="glass rounded-2xl p-6 ml-13 border-amber-500/30">
+                  <p className="text-muted-foreground leading-relaxed mb-4">
+                    Las giras del Circo Orrín lo llevarán a tocar la <strong>Comarca Minera</strong>: Pachuca y, finalmente, Real del Monte. El choque fue brutal. Bell no encontró nopales y desierto, sino un <em>"Little Cornwall"</em> incrustado en la sierra.
+                  </p>
+                  <blockquote className="border-l-4 border-amber-500 pl-4 my-6 italic text-foreground/80">
+                    "Bell, embriagado por este sincretismo y acogido por la calidez ruda de los mineros, subió al Panteón Inglés. Allí, mirando las lápidas devotas al este, escupió su rebeldía. Compró un espacio por adelantado y juró: <em>'Cuando la muerte me alcance, entiérrenme dándole la espalda al país que me escupió'</em>."
+                  </blockquote>
+                </div>
+              </motion.div>
+
+              {/* Chapter IV - The Truth */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+                className="mb-12"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-red-500" />
+                  </div>
+                  <h3 className="font-serif text-2xl font-bold text-foreground">
+                    La Cirugía a la Verdad
+                  </h3>
+                </div>
+                <div className="glass rounded-2xl p-6 ml-13 bg-red-950/10 border-red-500/30">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Eye className="w-5 h-5 text-red-400" />
+                    <span className="text-red-400 font-medium">La respuesta histórica es: NO</span>
+                  </div>
+                  <p className="text-muted-foreground leading-relaxed mb-4">
+                    Con el estallido de la Revolución Maderista en 1911, Bell huyó con su familia hacia Nueva York. Una tormenta de nieve empeoró su condición de salud. El domingo <strong>12 de marzo de 1911</strong>, a los 53 años, Ricardo Bell exhaló su último aliento. Fue sepultado en Nueva York. Su propia hija, Sylvia Bell, lo confirmó en su libro biográfico de 1984.
+                  </p>
+                  <div className="p-4 rounded-lg bg-muted/50 mb-4">
+                    <h4 className="font-bold text-foreground mb-2">El Enigma Resuelto:</h4>
+                    <p className="text-sm text-muted-foreground">
+                      La <strong>tumba 55</strong> pertenece en realidad a un minero británico llamado <strong>Richard Bell</strong>, originario de Middleton, Teesdale, Inglaterra. Este minero falleció el <strong>25 de octubre de 1875</strong>, a los 63 años. ¿Por qué está volteada? No fue un acto de rebeldía. La historia forense sugiere que un deslizamiento de tierra o un error de los sepultureros locales alteró la orientación de la cantera.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Chapter V - The Myth */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4 }}
+                className="mb-12"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <h3 className="font-serif text-2xl font-bold text-foreground">
+                    La Transmutación Sociológica
+                  </h3>
+                </div>
+                <div className="glass rounded-2xl p-6 ml-13">
+                  <p className="text-muted-foreground leading-relaxed mb-4">
+                    Si la historia es clara, <strong>¿por qué sobrevive la leyenda?</strong> Porque el pueblo de Real del Monte necesitaba que fuera verdad.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed mb-4">
+                    La psicología colectiva hizo el resto. Fusionaron al minero anónimo con el ídolo popular. Inventaron el desprecio a Inglaterra para justificar el error topográfico de la tumba.
+                  </p>
+                  <div className="p-4 rounded-lg bg-gradient-to-r from-amber-500/20 to-purple-500/20 border border-amber-500/30 my-6">
+                    <p className="text-foreground font-serif italic text-center">
+                      "Nueva York guarda el polvo. Real del Monte resguarda el espíritu."
+                    </p>
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Hay quienes juran que en las madrugadas heladas se escuchan las carcajadas de Bell rebotando entre los oyameles. Es la memoria viva.
+                  </p>
+                </div>
+              </motion.div>
+
+              {/* Call to Action */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="text-center"
+              >
+                <Button 
+                  className="bg-gradient-to-r from-purple-600 to-amber-600 hover:from-purple-700 hover:to-amber-700 text-white rounded-full px-8"
+                  onClick={() => window.location.href = '/mapa'}
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Visitar el Panteón Inglés
+                </Button>
+              </motion.div>
+            </div>
           </div>
         </section>
 
