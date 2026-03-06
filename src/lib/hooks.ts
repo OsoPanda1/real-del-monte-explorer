@@ -298,3 +298,96 @@ export function useModeratePost() {
     },
   });
 }
+
+// ============================================
+// ADMIN BUSINESS CRUD HOOKS
+// ============================================
+
+export interface BusinessInput {
+  name: string;
+  category: string;
+  description: string;
+  shortDescription?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  website?: string;
+  address?: string;
+  addressReference?: string;
+  latitude?: number;
+  longitude?: number;
+  imageUrl?: string;
+  imageUrl2?: string;
+  imageUrl3?: string;
+  videoUrl?: string;
+  scheduleDisplay?: string;
+  facebook?: string;
+  instagram?: string;
+  tiktok?: string;
+  priceRange?: string;
+}
+
+export function useCreateBusiness() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: BusinessInput) =>
+      apiClient.post<{ success: boolean; id: string }>('/admin/businesses', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.businesses() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats() });
+    },
+  });
+}
+
+export function useUpdateBusiness() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<BusinessInput> }) =>
+      apiClient.put<{ success: boolean }>(`/admin/businesses/${id}`, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.businesses() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.business(id) });
+    },
+  });
+}
+
+export function useDeleteBusiness() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient.delete<{ success: boolean }>(`/admin/businesses/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.businesses() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats() });
+    },
+  });
+}
+
+export function useToggleBusinessStatus() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      apiClient.patch<{ success: boolean }>(`/admin/businesses/${id}/status`, { isActive }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.businesses() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats() });
+    },
+  });
+}
+
+export function useToggleBusinessPremium() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, isPremium }: { id: string; isPremium: boolean }) =>
+      apiClient.patch<{ success: boolean }>(`/admin/businesses/${id}/premium`, { isPremium }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.businesses() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats() });
+    },
+  });
+}

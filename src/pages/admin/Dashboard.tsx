@@ -26,6 +26,17 @@ import {
 } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import { 
+  useAdminStats, 
+  useAdminBusinesses, 
+  useCreateBusiness, 
+  useUpdateBusiness, 
+  useDeleteBusiness,
+  useToggleBusinessStatus,
+  useToggleBusinessPremium,
+  useFeatureBusiness,
+  BusinessInput
+} from "@/lib/hooks";
 
 // Business categories
 const BUSINESS_CATEGORIES = [
@@ -42,13 +53,44 @@ const BUSINESS_CATEGORIES = [
 
 const PRICE_RANGES = [
   { value: "ECONOMICO", label: "Económico ($)" },
-  { value: "MODERADO", label: "Moderado ($$)" },
-  { value: "CARO", label: "Caro ($$$)" },
-  { value: "LUJO", label: "Lujo ($$$$)" },
+  { value: "MODERADO", label: "Moderado ($)" },
+  { value: "CARO", label: "Caro ($$)" },
+  { value: "LUJO", label: "Lujo ($$)" },
 ];
 
-// Sample business data
-const sampleBusinesses = [
+// Type for business from API
+interface Business {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  shortDescription?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  website?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  imageUrl?: string;
+  imageUrl2?: string;
+  imageUrl3?: string;
+  videoUrl?: string;
+  scheduleDisplay?: string;
+  facebook?: string;
+  instagram?: string;
+  tiktok?: string;
+  isPremium: boolean;
+  isVerified: boolean;
+  isFeatured: boolean;
+  isActive: boolean;
+  viewsCount: number;
+  rating: number;
+  priceRange?: string;
+}
+
+// Legacy sample data for fallback when API is not available
+const sampleBusinesses: Business[] = [
   {
     id: "1",
     name: "Pastes El Portal",
@@ -161,16 +203,45 @@ const sampleBusinesses = [
 const AdminDashboard = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("businesses");
-  const [businesses, setBusinesses] = useState(sampleBusinesses);
-  const [selectedBusiness, setSelectedBusiness] = useState<typeof sampleBusinesses[0] | null>(null);
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   
+  // API hooks for stats
+  const { data: stats, isLoading: statsLoading } = useAdminStats();
+  
+  // API hooks for businesses with filters
+  const { data: businesses = [], isLoading: businessesLoading, refetch } = useAdminBusinesses({
+    search: searchQuery,
+    limit: 100,
+  });
+  
+  // Stats from API or computed from businesses
+  const displayStats = stats?.data ? {
+    total: stats.data.totalBusinesses || 0,
+    active: stats.data.activeBusinesses || 0,
+    pending: stats.data.pendingBusinesses || 0,
+    premium: stats.data.premiumBusinesses || 0
+  } : {
+    total: businesses.length,
+    active: businesses.filter(b => b.isActive).length,
+    pending: businesses.filter(b => !b.isVerified).length,
+    premium: businesses.filter(b => b.isPremium).length
+  };
+  
+  // API mutations
+  const createBusiness = useCreateBusiness();
+  const updateBusiness = useUpdateBusiness();
+  const deleteBusiness = useDeleteBusiness();
+  const toggleStatus = useToggleBusinessStatus();
+  const togglePremium = useToggleBusinessPremium();
+  const featureBusiness = useFeatureBusiness();
+  
   // Form state
   const [formData, setFormData] = useState({
     name: "",
-    category: "GASTRONOMIA" as typeof BUSINESS_CATEGORIES[number]["value"],
+    category: "GASTRONOMIA",
     description: "",
     shortDescription: "",
     phone: "",
@@ -190,22 +261,6 @@ const AdminDashboard = () => {
     instagram: "",
     tiktok: "",
     priceRange: "MODERADO"
-  });
-
-  // Stats
-  const stats = {
-    total: businesses.length,
-    active: businesses.filter(b => b.isActive).length,
-    pending: businesses.filter(b => !b.isVerified).length,
-    premium: businesses.filter(b => b.isPremium).length
-  };
-
-  // Filter businesses
-  const filteredBusinesses = businesses.filter(b => {
-    const matchesSearch = b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || b.category === categoryFilter;
-    return matchesSearch && matchesCategory;
   });
 
   // Handle form change
@@ -249,7 +304,7 @@ const AdminDashboard = () => {
   };
 
   // Open edit business dialog
-  const handleEditBusiness = (business: typeof sampleBusinesses[0]) => {
+  const handleEditBusiness = (business: Business) => {
     setSelectedBusiness(business);
     setFormData({
       name: business.name,
@@ -277,8 +332,8 @@ const AdminDashboard = () => {
     setIsEditing(true);
   };
 
-  // Save business
-  const handleSaveBusiness = () => {
+  // Save business using API
+  const handleSaveBusiness = async () => {
     if (!formData.name || !formData.description) {
       toast({
         title: "Error",
@@ -297,82 +352,134 @@ const AdminDashboard = () => {
       return;
     }
 
-    if (selectedBusiness) {
-      // Update existing
-      setBusinesses(prev => prev.map(b => 
-        b.id === selectedBusiness.id 
-          ? { ...b, ...formData } as typeof b
-          : b
-      ));
+    const businessData: BusinessInput = {
+      name: formData.name,
+      category: formData.category,
+      description: formData.description,
+      shortDescription: formData.shortDescription,
+      phone: formData.phone,
+      whatsapp: formData.whatsapp,
+      email: formData.email,
+      website: formData.website,
+      address: formData.address,
+      addressReference: formData.addressReference,
+      latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
+      longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
+      imageUrl: formData.imageUrl,
+      imageUrl2: formData.imageUrl2,
+      imageUrl3: formData.imageUrl3,
+      videoUrl: formData.videoUrl,
+      scheduleDisplay: formData.scheduleDisplay,
+      facebook: formData.facebook,
+      instagram: formData.instagram,
+      tiktok: formData.tiktok,
+      priceRange: formData.priceRange,
+    };
+
+    try {
+      if (selectedBusiness) {
+        // Update existing
+        await updateBusiness.mutateAsync({ id: selectedBusiness.id, data: businessData });
+        toast({
+          title: "Éxito",
+          description: "Negocio actualizado correctamente"
+        });
+      } else {
+        // Create new
+        await createBusiness.mutateAsync(businessData);
+        toast({
+          title: "Éxito",
+          description: "Negocio creado correctamente"
+        });
+      }
+      
+      setIsEditing(false);
+      setSelectedBusiness(null);
+      refetch();
+    } catch (error) {
       toast({
-        title: "Éxito",
-        description: "Negocio actualizado correctamente"
-      });
-    } else {
-      // Create new
-      const newBusiness = {
-        id: Date.now().toString(),
-        ...formData,
-        isPremium: false,
-        isVerified: true, // Auto-verify for demo
-        isFeatured: false,
-        isActive: true,
-        viewsCount: 0,
-        rating: 0,
-        latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
-        longitude: formData.longitude ? parseFloat(formData.longitude) : undefined
-      };
-      setBusinesses(prev => [...prev, newBusiness as typeof sampleBusinesses[0]]);
-      toast({
-        title: "Éxito",
-        description: "Negocio creado correctamente"
+        title: "Error",
+        description: selectedBusiness ? "Error al actualizar el negocio" : "Error al crear el negocio",
+        variant: "destructive"
       });
     }
-
-    setIsEditing(false);
-    setSelectedBusiness(null);
   };
 
-  // Toggle business status
-  const handleToggleStatus = (id: string) => {
-    setBusinesses(prev => prev.map(b => 
-      b.id === id ? { ...b, isActive: !b.isActive } as typeof b : b
-    ));
-    toast({
-      title: "Estado actualizado",
-      description: "El estado del negocio ha sido actualizado"
-    });
+  // Toggle business status using API
+  const handleToggleStatus = async (id: string) => {
+    const business = businesses.find(b => b.id === id);
+    if (!business) return;
+    
+    try {
+      await toggleStatus.mutateAsync({ id, isActive: !business.isActive });
+      toast({
+        title: "Estado actualizado",
+        description: "El estado del negocio ha sido actualizado"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al actualizar el estado",
+        variant: "destructive"
+      });
+    }
   };
 
-  // Toggle premium
-  const handleTogglePremium = (id: string) => {
-    setBusinesses(prev => prev.map(b => 
-      b.id === id ? { ...b, isPremium: !b.isPremium } as typeof b : b
-    ));
-    toast({
-      title: "Premium actualizado",
-      description: "El estado premium del negocio ha sido actualizado"
-    });
+  // Toggle premium using API
+  const handleTogglePremium = async (id: string) => {
+    const business = businesses.find(b => b.id === id);
+    if (!business) return;
+    
+    try {
+      await togglePremium.mutateAsync({ id, isPremium: !business.isPremium });
+      toast({
+        title: "Premium actualizado",
+        description: "El estado premium del negocio ha sido actualizado"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al actualizar el estado premium",
+        variant: "destructive"
+      });
+    }
   };
 
-  // Toggle featured
-  const handleToggleFeatured = (id: string) => {
-    setBusinesses(prev => prev.map(b => 
-      b.id === id ? { ...b, isFeatured: !b.isFeatured } as typeof b : b
-    ));
-    toast({
-      title: "Destacado actualizado",
-      description: "El negocio ha sido actualizado en destacados"
-    });
+  // Toggle featured using API
+  const handleToggleFeatured = async (id: string) => {
+    const business = businesses.find(b => b.id === id);
+    if (!business) return;
+    
+    try {
+      await featureBusiness.mutateAsync({ id, isFeatured: !business.isFeatured });
+      toast({
+        title: "Destacado actualizado",
+        description: "El negocio ha sido actualizado en destacados"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al actualizar el estado de destacado",
+        variant: "destructive"
+      });
+    }
   };
 
-  // Delete business
-  const handleDeleteBusiness = (id: string) => {
-    setBusinesses(prev => prev.filter(b => b.id !== id));
-    toast({
-      title: "Eliminado",
-      description: "El negocio ha sido eliminado"
-    });
+  // Delete business using API
+  const handleDeleteBusiness = async (id: string) => {
+    try {
+      await deleteBusiness.mutateAsync(id);
+      toast({
+        title: "Eliminado",
+        description: "El negocio ha sido eliminado"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al eliminar el negocio",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -412,7 +519,7 @@ s y contenido de RDM Digital
                     <Store className="w-5 h-5 text-blue-500" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{stats.total}</p>
+                    <p className="text-2xl font-bold">{displayStats.total}</p>
                     <p className="text-xs text-muted-foreground">Total Negocios</p>
                   </div>
                 </div>
@@ -426,7 +533,7 @@ s y contenido de RDM Digital
                     <CheckCircle className="w-5 h-5 text-green-500" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{stats.active}</p>
+                    <p className="text-2xl font-bold">{displayStats.active}</p>
                     <p className="text-xs text-muted-foreground">Activos</p>
                   </div>
                 </div>
@@ -440,7 +547,7 @@ s y contenido de RDM Digital
                     <Clock className="w-5 h-5 text-yellow-500" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{stats.pending}</p>
+                    <p className="text-2xl font-bold">{displayStats.pending}</p>
                     <p className="text-xs text-muted-foreground">Pendientes</p>
                   </div>
                 </div>
@@ -454,7 +561,7 @@ s y contenido de RDM Digital
                     <Star className="w-5 h-5 text-amber-500" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{stats.premium}</p>
+                    <p className="text-2xl font-bold">{displayStats.premium}</p>
                     <p className="text-xs text-muted-foreground">Premium</p>
                   </div>
                 </div>

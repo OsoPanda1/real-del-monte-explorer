@@ -111,5 +111,4 @@ export function useUpgradeBusiness() {
   });
 }
 
-// Export page component
-export { default as BusinessesPage } from './BusinessesPage';
+// Hooks are already exported at the top of this file
