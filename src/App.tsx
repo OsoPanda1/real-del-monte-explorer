@@ -27,7 +27,7 @@ import Apoya from "./pages/Apoya";
 import Reglamento from "./pages/Reglamento";
 import AdminDashboard from "./pages/admin/Dashboard";
 import Dichos from "./pages/Dichos";
-import DichosMineros from "./pages/DichosMineros";
+
 
 const queryClient = new QueryClient();
 
