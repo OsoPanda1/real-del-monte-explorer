@@ -331,7 +331,7 @@ const AdminDashboard = () => {
         latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
         longitude: formData.longitude ? parseFloat(formData.longitude) : undefined
       };
-      setBusinesses(prev => [...prev, newBusiness as typeof sampleBusinesses[0]]);
+      setBusinesses(prev => [...prev, newBusiness as unknown as typeof sampleBusinesses[0]]);
       toast({
         title: "Éxito",
         description: "Negocio creado correctamente"
