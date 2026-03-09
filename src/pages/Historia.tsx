@@ -307,6 +307,7 @@ const HistoriaPage = () => {
   return (
     <PageTransition>
       <div ref={containerRef} className="min-h-screen bg-background overflow-x-hidden">
+        <SEOMeta {...PAGE_SEO.historia} />
         <Navbar />
         
         {/* Hero Section with Parallax */}

@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import EventCard from "@/components/EventCard";
 import PageTransition from "@/components/PageTransition";
+import { SEOMeta, PAGE_SEO } from "@/components/SEOMeta";
 import { motion } from "framer-motion";
 import heroImg from "@/assets/hero-real-del-monte.webp";
 import rdm1 from "@/assets/rdm1.jpeg";

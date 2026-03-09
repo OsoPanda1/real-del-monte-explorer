@@ -7,6 +7,7 @@ import "leaflet/dist/leaflet.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
+import { SEOMeta, PAGE_SEO } from "@/components/SEOMeta";
 
 import pasteImg from "@/assets/paste.webp";
 import minaImg from "@/assets/mina-acosta.webp";
