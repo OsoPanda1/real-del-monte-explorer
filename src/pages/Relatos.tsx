@@ -1,13 +1,13 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, Ghost, Heart, Moon, Star, TreePine, Scroll, Play, Pause, Volume2 } from "lucide-react";
+import { BookOpen, Ghost, Heart, Moon, Star, TreePine, Scroll, Play, Pause, Volume2, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 import panteonImg from "@/assets/panteon-ingles.webp";
 import penasImg from "@/assets/penas-cargadas.webp";
 import minaImg from "@/assets/mina-acosta.webp";
-import leyendaAudio from "@/assets/leyenda1.mp3";
+import leyendaVideo from "@/assets/leyenda1.mp4";
 
 const legends = [
   {
