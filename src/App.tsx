@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { NotificationProvider } from "@/components/NotificationSystem";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import CinematicIntro from "@/components/CinematicIntro";
 import Index from "./pages/Index";
 import Lugares from "./pages/Lugares";
@@ -29,7 +30,15 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import Dichos from "./pages/Dichos";
 
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -65,7 +74,6 @@ const App = () => {
   const [introComplete, setIntroComplete] = useState(false);
   const handleIntroComplete = useCallback(() => setIntroComplete(true), []);
 
-  // Only show intro once per session
   const [showIntro] = useState(() => {
     if (sessionStorage.getItem('rdm_intro_shown')) return false;
     sessionStorage.setItem('rdm_intro_shown', 'true');
@@ -73,19 +81,23 @@ const App = () => {
   });
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <NotificationProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          {showIntro && !introComplete && <CinematicIntro onComplete={handleIntroComplete} />}
-          <BrowserRouter>
-            <AnimatedRoutes />
-            <RealitoChat />
-          </BrowserRouter>
-        </TooltipProvider>
-      </NotificationProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <NotificationProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            {showIntro && !introComplete && <CinematicIntro onComplete={handleIntroComplete} />}
+            <BrowserRouter>
+              <ErrorBoundary>
+                <AnimatedRoutes />
+              </ErrorBoundary>
+              <RealitoChat />
+            </BrowserRouter>
+          </TooltipProvider>
+        </NotificationProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

@@ -9,6 +9,8 @@ import EventCard from "@/components/EventCard";
 import RoutesSection from "@/components/RoutesSection";
 import VideoGallery from "@/components/VideoGallery";
 import ImageGallery from "@/components/ImageGallery";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
+import SEOMeta from "@/components/SEOMeta";
 import { TextReveal, StaggerContainer, StaggerItem, GlowCard } from "@/components/VisualEffects";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -35,6 +37,11 @@ const Index = () => {
 
   return (
     <PageTransition>
+      <SEOMeta 
+        title="Inicio"
+        description="Descubre Real del Monte, Pueblo Mágico de Hidalgo. Guía turística digital con mapa interactivo, rutas, gastronomía y eventos culturales."
+        keywords="Real del Monte, Pueblo Mágico, Hidalgo, turismo, paste, minas, historia"
+      />
       <div ref={containerRef} className="min-h-screen bg-background overflow-x-hidden">
         <Navbar />
         <HeroSection />
@@ -50,7 +57,7 @@ const Index = () => {
               <SectionHeader title="Lugares Imperdibles" subtitle="Descubre los atractivos más emblemáticos de Real del Monte" linkTo="/lugares" />
             </TextReveal>
             {loadingPlaces ? (
-              <p className="text-center text-muted-foreground">Cargando lugares...</p>
+              <LoadingSkeleton variant="card" count={4} />
             ) : (
               <StaggerContainer className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {places.map((place: any, i: number) => (
@@ -76,7 +83,7 @@ const Index = () => {
               <SectionHeader title="Directorio Local" subtitle="Negocios y servicios recomendados por la comunidad" linkTo="/directorio" />
             </TextReveal>
             {loadingBusinesses ? (
-              <p className="text-center text-muted-foreground">Cargando negocios...</p>
+              <LoadingSkeleton variant="card" count={2} />
             ) : (
               <StaggerContainer className="grid md:grid-cols-2 gap-6">
                 {businesses.map((biz: any, i: number) => (
@@ -100,7 +107,7 @@ const Index = () => {
               <SectionHeader title="Próximos Eventos" subtitle="Festivales, ferias y temporadas especiales" linkTo="/eventos" />
             </TextReveal>
             {loadingEvents ? (
-              <p className="text-center text-muted-foreground">Cargando eventos...</p>
+              <LoadingSkeleton variant="event" count={3} />
             ) : (
               <StaggerContainer className="grid md:grid-cols-3 gap-6">
                 {events.map((event: any, i: number) => (
@@ -120,7 +127,7 @@ const Index = () => {
               <SectionHeader title="Muro de Recuerdos" subtitle="Experiencias compartidas por visitantes de Real del Monte" linkTo="/comunidad" />
             </TextReveal>
             {loadingPosts ? (
-              <p className="text-center text-muted-foreground">Cargando publicaciones...</p>
+              <LoadingSkeleton variant="card" count={3} />
             ) : (
               <StaggerContainer className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {posts.map((post: any, i: number) => (

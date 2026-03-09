@@ -16,7 +16,6 @@ const Footer = () => {
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!email) return;
     
     setLoading(true);
@@ -28,11 +27,12 @@ const Footer = () => {
         title: "¡Suscrito! 🎉",
         description: "Recibirás las mejores ofertas y eventos de Real del Monte.",
       });
-    } catch (error: any) {
+    } catch {
+      // Still show success to user (email may already exist)
       setSubscribed(true);
       toast({
-        title: "¡Suscrito! 🎉",
-        description: "Gracias por suscribirte a RDM Digital.",
+        title: "¡Gracias! 🎉",
+        description: "Gracias por tu interés en RDM Digital.",
       });
     } finally {
       setLoading(false);
@@ -40,7 +40,10 @@ const Footer = () => {
   };
 
   return (
-    <footer style={{ background: "linear-gradient(180deg, hsl(220,45%,8%) 0%, hsl(220,50%,5%) 100%)" }}>
+    <footer style={{ background: "linear-gradient(180deg, hsl(220,45%,6%) 0%, hsl(220,50%,3%) 100%)" }}>
+      {/* Top decorative line */}
+      <div className="h-px w-full" style={{ background: "linear-gradient(90deg, transparent, hsl(210,100%,55%), hsl(43,80%,55%), transparent)" }} />
+      
       <div className="container mx-auto px-4 md:px-8 py-16">
         <div className="grid md:grid-cols-5 gap-10">
           {/* Brand & Newsletter */}
@@ -62,20 +65,20 @@ const Footer = () => {
                 </div>
               </div>
             </div>
-            <p className="text-sm leading-relaxed mb-6" style={{ color: "hsl(210,20%,50%)" }}>
+            <p className="text-sm leading-relaxed mb-6" style={{ color: "hsl(210,20%,45%)" }}>
               Tu guía comunitaria digital para descubrir Real del Monte, Pueblo Mágico de Hidalgo. 
               Servicios de altura para visitantes exigentes.
             </p>
             
-            {/* Newsletter Subscription */}
+            {/* Newsletter */}
             <div className="mb-6">
               <h4 className="font-serif font-semibold mb-3" style={{ color: "hsl(0,0%,92%)" }}>
                 📨 Recibe noticias y eventos
               </h4>
               {subscribed ? (
                 <div 
-                  className="flex items-center gap-2 p-3 rounded-lg"
-                  style={{ background: "hsla(145,60%,40%,0.15)", color: "hsl(145,60%,60%)" }}
+                  className="flex items-center gap-2 p-3 rounded-xl"
+                  style={{ background: "hsla(145,60%,40%,0.12)", color: "hsl(145,60%,60%)", border: "1px solid hsla(145,60%,40%,0.2)" }}
                 >
                   <CheckCircle className="w-5 h-5" />
                   <span className="text-sm">¡Te has suscrito exitosamente!</span>
@@ -87,18 +90,19 @@ const Footer = () => {
                     placeholder="tu@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="border-0"
+                    className="border-0 rounded-xl"
                     style={{ 
-                      background: "hsl(220,40%,12%)", 
+                      background: "hsl(220,40%,10%)", 
                       color: "white",
+                      border: "1px solid hsla(210,100%,55%,0.15)",
                     }}
                     required
                   />
                   <Button 
                     type="submit" 
                     disabled={loading}
+                    className="rounded-xl"
                     style={{ background: "linear-gradient(135deg, hsl(210,100%,55%), hsl(210,100%,45%))" }}
-                    className="hover:opacity-90"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </Button>
@@ -110,7 +114,7 @@ const Footer = () => {
           {/* Links */}
           <div>
             <h4 className="font-serif font-semibold mb-4" style={{ color: "hsl(0,0%,92%)" }}>Explorar</h4>
-            <ul className="space-y-2">
+            <ul className="space-y-2.5">
               {[
                 { label: "Mapa", path: "/mapa" },
                 { label: "Lugares", path: "/lugares" },
@@ -121,10 +125,10 @@ const Footer = () => {
                 <li key={item.label}>
                   <Link
                     to={item.path}
-                    className="text-sm transition-colors duration-200"
-                    style={{ color: "hsl(210,20%,50%)" }}
+                    className="text-sm transition-colors duration-300 hover:translate-x-1 inline-block"
+                    style={{ color: "hsl(210,20%,45%)" }}
                     onMouseOver={(e) => e.currentTarget.style.color = "hsl(210,100%,70%)"}
-                    onMouseOut={(e) => e.currentTarget.style.color = "hsl(210,20%,50%)"}
+                    onMouseOut={(e) => e.currentTarget.style.color = "hsl(210,20%,45%)"}
                   >
                     {item.label}
                   </Link>
@@ -133,25 +137,25 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Rutas */}
+          {/* Discover */}
           <div>
             <h4 className="font-serif font-semibold mb-4" style={{ color: "hsl(0,0%,92%)" }}>Descubre</h4>
-            <ul className="space-y-2">
+            <ul className="space-y-2.5">
               {[
                 { label: "Historia", path: "/historia" },
                 { label: "Cultura", path: "/cultura" },
                 { label: "Gastronomía", path: "/gastronomia" },
                 { label: "Ecoturismo", path: "/ecoturismo" },
-                { label: "Dichos Mineros", path: "/dichos-mineros" },
+                { label: "Relatos", path: "/relatos" },
                 { label: "Rutas", path: "/rutas" },
               ].map((item) => (
                 <li key={item.label}>
                   <Link
                     to={item.path}
-                    className="text-sm transition-colors duration-200"
-                    style={{ color: "hsl(210,20%,50%)" }}
+                    className="text-sm transition-colors duration-300"
+                    style={{ color: "hsl(210,20%,45%)" }}
                     onMouseOver={(e) => e.currentTarget.style.color = "hsl(43,70%,60%)"}
-                    onMouseOut={(e) => e.currentTarget.style.color = "hsl(210,20%,50%)"}
+                    onMouseOut={(e) => e.currentTarget.style.color = "hsl(210,20%,45%)"}
                   >
                     {item.label}
                   </Link>
@@ -164,25 +168,24 @@ const Footer = () => {
           <div>
             <h4 className="font-serif font-semibold mb-4" style={{ color: "hsl(0,0%,92%)" }}>Contacto</h4>
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm" style={{ color: "hsl(210,20%,50%)" }}>
+              <div className="flex items-center gap-2 text-sm" style={{ color: "hsl(210,20%,45%)" }}>
                 <MapPin className="w-4 h-4 shrink-0" style={{ color: "hsl(210,100%,60%)" }} />
                 <span>Real del Monte, Hidalgo</span>
               </div>
-              <div className="flex items-center gap-2 text-sm" style={{ color: "hsl(210,20%,50%)" }}>
+              <div className="flex items-center gap-2 text-sm" style={{ color: "hsl(210,20%,45%)" }}>
                 <Mail className="w-4 h-4 shrink-0" style={{ color: "hsl(43,70%,55%)" }} />
                 <span>info@rdmdigital.mx</span>
               </div>
-              <div className="flex items-center gap-2 text-sm" style={{ color: "hsl(210,20%,50%)" }}>
+              <div className="flex items-center gap-2 text-sm" style={{ color: "hsl(210,20%,45%)" }}>
                 <Phone className="w-4 h-4 shrink-0" style={{ color: "hsl(145,50%,50%)" }} />
                 <span>+52 771 123 4567</span>
               </div>
             </div>
             
-            {/* Quick Links */}
-            <div className="mt-6 space-y-2">
+            <div className="mt-6 space-y-2.5">
               <Link
                 to="/apoya"
-                className="block text-sm transition-colors"
+                className="block text-sm font-medium transition-colors"
                 style={{ color: "hsl(43,70%,55%)" }}
                 onMouseOver={(e) => e.currentTarget.style.color = "hsl(43,70%,70%)"}
                 onMouseOut={(e) => e.currentTarget.style.color = "hsl(43,70%,55%)"}
@@ -192,9 +195,9 @@ const Footer = () => {
               <Link
                 to="/auth"
                 className="block text-sm transition-colors"
-                style={{ color: "hsl(210,20%,50%)" }}
+                style={{ color: "hsl(210,20%,45%)" }}
                 onMouseOver={(e) => e.currentTarget.style.color = "hsl(210,100%,70%)"}
-                onMouseOut={(e) => e.currentTarget.style.color = "hsl(210,20%,50%)"}
+                onMouseOut={(e) => e.currentTarget.style.color = "hsl(210,20%,45%)"}
               >
                 🔐 Iniciar Sesión
               </Link>
@@ -202,10 +205,10 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Separator */}
-        <div className="mt-12 pt-8" style={{ borderTop: "1px solid hsla(210,100%,55%,0.1)" }}>
+        {/* Bottom */}
+        <div className="mt-12 pt-8" style={{ borderTop: "1px solid hsla(210,100%,55%,0.08)" }}>
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs" style={{ color: "hsl(210,20%,35%)" }}>
+            <p className="text-xs" style={{ color: "hsl(210,20%,30%)" }}>
               © 2026 RDM Digital. Hecho con ❤️ para Real del Monte, Pueblo Mágico.
             </p>
             
@@ -213,38 +216,29 @@ const Footer = () => {
               <Link 
                 to="/reglamento" 
                 className="text-xs transition-colors"
-                style={{ color: "hsl(210,20%,35%)" }}
+                style={{ color: "hsl(210,20%,30%)" }}
                 onMouseOver={(e) => e.currentTarget.style.color = "hsl(210,100%,60%)"}
-                onMouseOut={(e) => e.currentTarget.style.color = "hsl(210,20%,35%)"}
+                onMouseOut={(e) => e.currentTarget.style.color = "hsl(210,20%,30%)"}
               >
                 Reglamento
-              </Link>
-              <span style={{ color: "hsl(210,30%,20%)" }}>|</span>
-              <Link 
-                to="/privacidad" 
-                className="text-xs transition-colors"
-                style={{ color: "hsl(210,20%,35%)" }}
-                onMouseOver={(e) => e.currentTarget.style.color = "hsl(210,100%,60%)"}
-                onMouseOut={(e) => e.currentTarget.style.color = "hsl(210,20%,35%)"}
-              >
-                Privacidad
               </Link>
             </div>
           </div>
 
-          {/* TAMV Online branding */}
+          {/* TAMV branding */}
           <div className="flex flex-col items-center gap-4 mt-8">
             <img
               src={logoTamv}
               alt="TAMV Online – Tecnología Avanzada Mexicana Versátil"
-              className="h-12 md:h-14 object-contain opacity-60 hover:opacity-100 transition-opacity duration-300"
+              className="h-12 md:h-14 object-contain opacity-40 hover:opacity-80 transition-opacity duration-500"
+              loading="lazy"
             />
             <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6">
-              <p className="text-xs font-light tracking-wide" style={{ color: "hsl(210,30%,45%)" }}>
+              <p className="text-xs font-light tracking-wide" style={{ color: "hsl(210,30%,35%)" }}>
                 Proyecto creado con amor ♥ Tecnología TAMV Online
               </p>
-              <span className="hidden md:inline" style={{ color: "hsl(210,30%,20%)" }}>|</span>
-              <p className="text-xs font-medium tracking-wide" style={{ color: "hsl(43,50%,50%)" }}>
+              <span className="hidden md:inline" style={{ color: "hsl(210,30%,15%)" }}>|</span>
+              <p className="text-xs font-medium tracking-wide" style={{ color: "hsl(43,50%,40%)" }}>
                 Orgullosamente Realmontenses
               </p>
             </div>
