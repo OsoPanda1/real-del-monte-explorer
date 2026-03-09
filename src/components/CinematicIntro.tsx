@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logoRdm from "@/assets/logo-rdm-digital.png";
 import introAudio from "@/assets/intro_off.mp3";
+import introVideo from "@/assets/RDM Digital_Call To Action_2_2026-03-03 05_52_52.mp4";
 
 interface CinematicIntroProps {
   onComplete: () => void;
@@ -333,6 +334,16 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
 
           {started && (
             <>
+              {/* Background Video */}
+              <video
+                src={introVideo}
+                autoPlay
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover opacity-30 z-0"
+                style={{ filter: "saturate(0.6) contrast(1.2)" }}
+              />
+
               {/* Particles */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 {[...Array(60)].map((_, i) => (

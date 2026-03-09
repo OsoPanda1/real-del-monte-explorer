@@ -28,6 +28,7 @@ import Apoya from "./pages/Apoya";
 import Reglamento from "./pages/Reglamento";
 import AdminDashboard from "./pages/admin/Dashboard";
 import Dichos from "./pages/Dichos";
+import Catalogo from "./pages/Catalogo";
 
 
 const queryClient = new QueryClient({
@@ -64,6 +65,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/dichos" element={<Dichos />} />
         <Route path="/dichos-mineros" element={<Dichos />} />
+        <Route path="/catalogo" element={<Catalogo />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>
