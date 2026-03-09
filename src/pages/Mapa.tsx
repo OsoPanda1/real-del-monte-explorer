@@ -30,18 +30,21 @@ interface MapMarkerData {
 }
 
 const markers: MapMarkerData[] = [
-  { id: "1", name: "Mina de Acosta", category: "Mina", lat: 20.1410, lng: -98.6720, description: "Desciende 450 metros bajo tierra en esta mina del siglo XVIII.", image: minaImg, type: "place", rating: 4.8 },
-  { id: "2", name: "Panteón Inglés", category: "Museo", lat: 20.1445, lng: -98.6780, description: "Cementerio único con cruces celtas entre pinos y neblina.", image: panteonImg, type: "place", rating: 4.7 },
-  { id: "3", name: "Peñas Cargadas", category: "Naturaleza", lat: 20.1500, lng: -98.6600, description: "Formaciones rocosas gigantes en equilibrio imposible.", image: penasImg, type: "place", rating: 4.9 },
-  { id: "4", name: "Plaza Principal", category: "Cultura", lat: 20.1380, lng: -98.6735, description: "El corazón del pueblo mágico.", image: callesImg, type: "place", rating: 4.5 },
-  { id: "5", name: "Museo del Paste", category: "Museo", lat: 20.1375, lng: -98.6740, description: "Descubre la historia del paste.", image: pasteImg, type: "place", rating: 4.6 },
-  { id: "6", name: "Parroquia de la Asunción", category: "Iglesia", lat: 20.1370, lng: -98.6730, description: "Templo del siglo XVIII con arquitectura colonial.", image: callesImg, type: "place", rating: 4.7 },
-  { id: "7", name: "Pastes El Portal", category: "Pastes", lat: 20.1378, lng: -98.6738, description: "Los pastes más tradicionales desde 1985.", image: pasteImg, type: "business", isPremium: true, rating: 4.9, phone: "771 123 4567" },
-  { id: "8", name: "Hotel Real de Minas", category: "Hospedaje", lat: 20.1395, lng: -98.6750, description: "Hotel boutique en casona colonial restaurada.", image: callesImg, type: "business", isPremium: true, rating: 4.7, phone: "771 234 5678" },
-  { id: "9", name: "Artesanías del Monte", category: "Souvenir", lat: 20.1365, lng: -98.6725, description: "Artesanías locales hechas a mano.", image: callesImg, type: "business", isPremium: true, rating: 4.6, phone: "771 345 6789" },
-  { id: "10", name: "Café La Neblina", category: "Restaurante", lat: 20.1382, lng: -98.6742, description: "Café artesanal de altura con vista al bosque.", image: panteonImg, type: "business", isPremium: false, rating: 4.4 },
-  { id: "11", name: "Tours Mineros RDM", category: "Tours", lat: 20.1415, lng: -98.6715, description: "Recorridos guiados por las minas históricas.", image: minaImg, type: "business", isPremium: true, rating: 4.8, phone: "771 456 7890" },
-  { id: "12", name: "Casa de la Cultura", category: "Cultura", lat: 20.1372, lng: -98.6732, description: "Espacio cultural con exposiciones y talleres.", image: callesImg, type: "place", rating: 4.5 },
+  { id: "1", name: "Museo de Sitio Mina de Acosta", category: "Mina", lat: 20.1410, lng: -98.6720, description: "Museo de historia minera con herramientas antiguas, fotos y visitas guiadas a túneles de 400 m. Horario: 9:30-17:30 (mart-sáb).", image: minaImg, type: "place", rating: 4.8 },
+  { id: "2", name: "Panteón Inglés", category: "Museo", lat: 20.0800, lng: -98.7000, description: "Cementerio histórico con 755 tumbas de mineros británicos, en bosque de oyamel a 2,660 msnm. Pequeño museo incluido.", image: panteonImg, type: "place", rating: 4.7 },
+  { id: "3", name: "Peñas Cargadas", category: "Naturaleza", lat: 20.1500, lng: -98.6600, description: "Formaciones rocosas gigantes en equilibrio imposible. Senderismo con vistas panorámicas del valle.", image: penasImg, type: "place", rating: 4.9 },
+  { id: "4", name: "Parroquia de Nuestra Señora de la Asunción", category: "Iglesia", lat: 20.12928, lng: -98.72996, description: "Iglesia principal en la Plaza Juárez, emblemática del centro histórico con arquitectura colonial.", image: callesImg, type: "place", rating: 4.7 },
+  { id: "5", name: "Museo del Paste", category: "Museo", lat: 20.1375, lng: -98.6740, description: "Historia del paste, su origen inglés y cómo se convirtió en el platillo emblemático de Real del Monte.", image: pasteImg, type: "place", rating: 4.6 },
+  { id: "6", name: "Museo de Medicina Laboral", category: "Museo", lat: 20.1385, lng: -98.6728, description: "Antiguo hospital de 1908 que muestra enfermedades y tratamientos de mineros. Horario: 9:30-17:30.", image: callesImg, type: "place", rating: 4.5 },
+  { id: "7", name: "Santuario del Señor de Zelontla", category: "Iglesia", lat: 20.1360, lng: -98.6745, description: "Templo con detalles fotogénicos y vestimenta del Cristo Minero.", image: callesImg, type: "place", rating: 4.4 },
+  { id: "8", name: "Plaza Principal", category: "Cultura", lat: 20.1380, lng: -98.6735, description: "Corazón del pueblo con portales, fuentes y edificios de aire inglés.", image: callesImg, type: "place", rating: 4.5 },
+  { id: "9", name: "Callejón de los Artistas", category: "Cultura", lat: 20.1377, lng: -98.6730, description: "Exhibe fotos de producciones cinematográficas, con vistas panorámicas.", image: callesImg, type: "place", rating: 4.3 },
+  { id: "10", name: "Iglesia de la Santa Veracruz", category: "Iglesia", lat: 20.1390, lng: -98.6738, description: "Iglesia histórica vinculada al patrimonio religioso de Real del Monte.", image: callesImg, type: "place", rating: 4.3 },
+  { id: "11", name: "Pastes El Portal", category: "Pastes", lat: 20.1378, lng: -98.6738, description: "Los pastes más tradicionales desde 1985.", image: pasteImg, type: "business", isPremium: true, rating: 4.9, phone: "771 123 4567" },
+  { id: "12", name: "Hotel Real de Minas", category: "Hospedaje", lat: 20.1395, lng: -98.6750, description: "Hotel boutique en casona colonial restaurada.", image: callesImg, type: "business", isPremium: true, rating: 4.7, phone: "771 234 5678" },
+  { id: "13", name: "Artesanías del Monte", category: "Souvenir", lat: 20.1365, lng: -98.6725, description: "Artesanías locales hechas a mano con técnicas tradicionales.", image: callesImg, type: "business", isPremium: true, rating: 4.6, phone: "771 345 6789" },
+  { id: "14", name: "Café La Neblina", category: "Restaurante", lat: 20.1382, lng: -98.6742, description: "Café artesanal de altura con vista al bosque.", image: panteonImg, type: "business", isPremium: false, rating: 4.4 },
+  { id: "15", name: "Tours Mineros RDM", category: "Tours", lat: 20.1415, lng: -98.6715, description: "Recorridos guiados por las minas históricas.", image: minaImg, type: "business", isPremium: true, rating: 4.8, phone: "771 456 7890" },
 ];
 
 // Futuristic glowing icon factory
