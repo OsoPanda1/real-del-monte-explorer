@@ -3,9 +3,14 @@ import { TreePine, Mountain, Footprints, Tent, Camera, Binoculars, Sun, CloudFog
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
+import { SEOMeta, PAGE_SEO } from "@/components/SEOMeta";
 import penasImg from "@/assets/penas-cargadas.webp";
 import callesImg from "@/assets/calles-colonial.webp";
 import minaImg from "@/assets/mina-acosta.webp";
+import rdm1 from "@/assets/rdm1.jpeg";
+import rdm2 from "@/assets/rdm2.jpeg";
+import rdm3 from "@/assets/rdm01.jpg";
+import rdm4 from "@/assets/rdm02.jpg";
 
 const activities = [
   {
@@ -98,6 +103,7 @@ const EcoturismoPage = () => {
   return (
     <PageTransition>
       <div className="min-h-screen bg-background">
+        <SEOMeta {...PAGE_SEO.ecoturismo} />
         <Navbar />
         
         {/* Hero */}

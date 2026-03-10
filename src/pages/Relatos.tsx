@@ -1,11 +1,14 @@
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, Ghost, Heart, Moon, Star, TreePine, Scroll } from "lucide-react";
+import { BookOpen, Ghost, Heart, Moon, Star, TreePine, Scroll, Play, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { SEOMeta } from "@/components/SEOMeta";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 import panteonImg from "@/assets/panteon-ingles.webp";
 import penasImg from "@/assets/penas-cargadas.webp";
 import minaImg from "@/assets/mina-acosta.webp";
+import leyendaVideo from "@/assets/leyenda1.mp4";
 
 const legends = [
   {
@@ -78,10 +81,85 @@ const shortStories = [
 ];
 
 const RelatosPage = () => {
+  const [showVideo, setShowVideo] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+
+  const initEcho = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || audioCtxRef.current) return;
+
+    const ctx = new AudioContext();
+    audioCtxRef.current = ctx;
+
+    const source = ctx.createMediaElementSource(video);
+    sourceRef.current = source;
+
+    // Echo chain: delay -> feedback gain -> delay (loop), mixed with dry signal
+    const delay = ctx.createDelay(1.0);
+    delay.delayTime.value = 0.35;
+
+    const feedback = ctx.createGain();
+    feedback.gain.value = 0.3;
+
+    const wetGain = ctx.createGain();
+    wetGain.gain.value = 0.25;
+
+    // Dry path
+    source.connect(ctx.destination);
+
+    // Wet path with feedback loop
+    source.connect(delay);
+    delay.connect(feedback);
+    feedback.connect(delay); // feedback loop
+    delay.connect(wetGain);
+    wetGain.connect(ctx.destination);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close();
+        audioCtxRef.current = null;
+        sourceRef.current = null;
+      }
+    };
+  }, []);
+
   return (
     <PageTransition>
+      <SEOMeta title="Relatos y Leyendas" description="Leyendas, misterios y relatos de tradición oral de Real del Monte, Pueblo Mágico." />
       <div className="min-h-screen bg-background">
         <Navbar />
+        
+        {/* Video Modal */}
+        {showVideo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+            onClick={() => setShowVideo(false)}
+          >
+            <div className="relative w-full max-w-3xl mx-4" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setShowVideo(false)}
+                className="absolute -top-10 right-0 text-white/80 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <video
+                ref={videoRef}
+                src={leyendaVideo}
+                controls
+                autoPlay
+                onPlay={initEcho}
+                className="w-full rounded-2xl shadow-2xl"
+              />
+            </div>
+          </motion.div>
+        )}
         
         {/* Hero */}
         <div className="relative h-[60vh] min-h-[500px] overflow-hidden">
@@ -97,17 +175,28 @@ const RelatosPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
               >
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-600 text-sm font-medium mb-4">
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/20 text-accent-foreground text-sm font-medium mb-4">
                   <Ghost className="w-4 h-4" />
                   Misterio y Tradición Oral
                 </span>
                 <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-4">
                   Relatos y Leyendas
                 </h1>
-                <p className="text-lg text-muted-foreground max-w-2xl">
+                <p className="text-lg text-muted-foreground max-w-2xl mb-6">
                   Historias que se cuentan al calor de la chimenea, entre la neblina de la montaña, 
                   transmitidas de generación en generación.
                 </p>
+                
+                {/* Video Button */}
+                <motion.button
+                  onClick={() => setShowVideo(true)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-electric to-gold text-navy font-semibold shadow-lg hover:shadow-electric/30 transition-all"
+                >
+                  <Play className="w-5 h-5" />
+                  <span>Ver Leyenda en Video</span>
+                </motion.button>
               </motion.div>
             </div>
           </div>
