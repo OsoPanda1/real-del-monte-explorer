@@ -81,6 +81,22 @@
     --glass-border: hsla(215, 20%, 75%, 0.3);
     --glass-highlight: hsla(220, 20%, 97%, 0.5);
     
+    /* Night Theme Colors */
+    --night-900: #05070A;
+    --night-800: #0B0F16;
+    --night-700: #101622;
+    --night-600: #1A2332;
+    
+    /* Gold Accent */
+    --gold-400: #D4B26A;
+    --gold-500: #C8A356;
+    --gold-600: #B8944C;
+    
+    /* Silver Text */
+    --silver-300: #C4CCD8;
+    --silver-400: #9EA7BA;
+    --silver-500: #78819A;
+    
     /* Animation Timing */
     --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
     --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);

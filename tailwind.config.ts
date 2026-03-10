@@ -56,6 +56,21 @@ export default {
         // RDM Digital 2026 Brand Colors
         gold: {
           DEFAULT: "hsl(var(--gold))",
+          foreground: "hsl(var(--gold-foreground))",
+          400: "#D4B26A",
+          500: "#C8A356",
+          600: "#B8944C",
+        },
+        night: {
+          900: "#05070A",
+          800: "#0B0F16",
+          700: "#101622",
+          600: "#1A2332",
+        },
+        silver: {
+          300: "#C4CCD8",
+          400: "#9EA7BA",
+          500: "#78819A",
           light: "hsl(var(--gold-light))",
           dark: "hsl(var(--gold-dark))",
         },

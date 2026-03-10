@@ -141,6 +141,11 @@ model Business {
   updatedAt            DateTime @updatedAt @map("updated_at")
 
   // Relations
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tipsReceived Tip[] @relation("TipsToBusiness")
+  liveEvents   LiveEvent[]
+  contentRecommendations ContentRecommendation[]
+  routeStops   RouteStopBusiness[]
   owner           User?          @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   tipsReceived   Tip[]         @relation("TipsToBusiness")
   donations      Donation[]
@@ -371,6 +376,8 @@ model Route {
 
   // Relations
   points RoutePoint[]
+  stops  RouteStop[]
+  type   String?        // "historia", "cultura", "gastronomia", "ecoturismo"
 
   @@map("routes")
 }
@@ -515,6 +522,116 @@ enum Sender {
   realito
 }
 
+// ==================== LIVE EVENTS (Real-time recommendations) ====================
+
+model LiveEvent {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  category    String        // "cultural", "gastronomico", "musical", "religioso", etc.
+  startsAt    DateTime      @map("starts_at")
+  endsAt      DateTime      @map("ends_at")
+  latitude    Float
+  longitude   Float
+  address     String?
+  imageUrl    String?       @map("image_url")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  
+  // Optional: link with a business
+  businessId  String?       @map("business_id")
+  business    Business?     @relation(fields: [businessId], references: [id])
+
+  @@index([startsAt])
+  @@index([endsAt])
+  @@index([category])
+  @@map("live_events")
+}
+
+// ==================== CONTENT SECTIONS (Narrative) ====================
+
+model ContentSection {
+  id          String   @id @default(uuid())
+  slug        String   @unique  // "historia", "cultura", "gastronomia", "ecoturismo"
+  title       String
+  description String?
+  type        String            // "historia", "cultura", "gastronomia", "ecoturismo"
+  isActive    Boolean           @default(true) @map("is_active")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  blocks      ContentBlock[]
+
+  @@map("content_sections")
+}
+
+model ContentBlock {
+  id          String   @id @default(uuid())
+  sectionId   String   @map("section_id")
+  order       Int
+  title       String
+  subtitle    String?
+  body        String
+  imageUrl    String?  @map("image_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  section         ContentSection          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  recommendations ContentRecommendation[]
+
+  @@map("content_blocks")
+}
+
+model ContentRecommendation {
+  id          String   @id @default(uuid())
+  blockId     String   @map("block_id")
+  businessId  String   @map("business_id")
+  order       Int
+  reason      String?  // Why this business is recommended for this block
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  block       ContentBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  business    Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("content_recommendations")
+}
+
+// ==================== ROUTE STOPS ====================
+
+model RouteStop {
+  id          String   @id @default(uuid())
+  routeId     String   @map("route_id")
+  order       Int
+  name        String
+  latitude    Float
+  longitude   Float
+  description String?
+  imageUrl    String?  @map("image_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  route       Route          @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  businesses  RouteStopBusiness[]
+
+  @@map("route_stops")
+}
+
+model RouteStopBusiness {
+  id          String   @id @default(uuid())
+  routeStopId String   @map("route_stop_id")
+  businessId  String   @map("business_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  routeStop   RouteStop @relation(fields: [routeStopId], references: [id], onDelete: Cascade)
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([routeStopId, businessId])
+  @@map("route_stop_businesses")
 // ==================== KNOWLEDGE BASE ====================
 
 model KnowledgeDocument {
