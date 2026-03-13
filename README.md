@@ -1,73 +1,131 @@
-# Welcome to your Lovable project
+# TAMV Digital Nexus — Real del Monte Explorer
 
-## Project info
+Plataforma turística y económica de Real del Monte con arquitectura híbrida:
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+- **Experiencia web React + Vite** para contenido, rutas, negocios y comunidad.
+- **Backend Node/Express** para API, analítica, pagos, IA y operación de negocio.
+- **Infraestructura soberana edge-first** para procesamiento espacial y reacción en tiempo real.
 
-## How can I edit this code?
+## Objetivo del repositorio
 
-There are several ways of editing your application.
+Este repo concentra el núcleo funcional del ecosistema TAMV para evolucionar módulos existentes sin degradarlos:
 
-**Use Lovable**
+- Orquestación por capas sintéticas (LSM).
+- Inteligencia de saturación y autopoiesis local.
+- Federación event-driven entre dominios económicos.
+- Proxy soberano de baja latencia en nodos edge.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Estructura principal
 
-Changes made via Lovable will be committed automatically to this repo.
+```text
+.
+├── src/                      # Frontend React
+│   ├── components/map/       # Render de malla y mapas
+│   ├── federaciones/         # Bus federado orientado a eventos
+│   ├── kernel/               # Kernel Chronus-Real (Node)
+│   └── realito/gen4/         # Orquestador predictivo de experiencia
+├── server/                   # Backend API (Express + Prisma)
+├── cmd/sovereign-proxy/      # Proxy soberano en Go
+├── 001_kernel_civilizatorio_init.sql
+├── docker-compose.yml
+├── docker-compose.soberano.yml
+└── Makefile
+```
 
-**Use your preferred IDE**
+## Modos de ejecución
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 1) Modo aplicación web/API (stack actual)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm ci
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Backend local (en otra terminal):
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+cd server
+npm ci
+npm run dev
+```
 
-**Use GitHub Codespaces**
+### 2) Modo soberano edge-first
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Levanta Nginx + PostGIS + Redis + Kernel:
 
-## What technologies are used for this project?
+```bash
+docker compose -f docker-compose.soberano.yml up --build
+```
 
-This project is built with:
+Variables requeridas:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- `DB_PASS`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `REDIS_URL` (si ejecutas módulos fuera de Docker)
+- `DATABASE_URL` (si ejecutas kernel/proxy fuera de Docker)
 
-## How can I deploy this project?
+## Núcleo espacial y autopoiesis
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Esquema soberano (PostGIS)
 
-## Can I connect a custom domain to my Lovable project?
+```bash
+make deploy-schema
+```
 
-Yes, you can!
+Este script:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- habilita `postgis` + `pgcrypto`,
+- crea el modelo federado (7 federaciones),
+- crea índices espaciales,
+- activa el trigger de autopoiesis (`pg_notify` sobre `canal_autopoiesis`).
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### Kernel Chronus-Real
+
+Implementado en `src/kernel/engine/ChronusEngine.ts`:
+
+- calcula presión zonal por densidad + clima + eventos + concurrencia,
+- dispara protocolos de escape cuando presión > 0.85,
+- publica señales en `SYSTEM_AUTOPOIESIS_ALERT`.
+
+## Proxy soberano (Go)
+
+Compilación cruzada:
+
+```bash
+make build-linux-amd64
+make build-linux-arm64
+```
+
+Funcionalidad principal:
+
+- enruta rutas críticas espaciales localmente (`/api/v1/kernel/nodos-cercanos`),
+- usa `ST_DWithin` directamente contra PostGIS local,
+- escucha `LISTEN/NOTIFY` para reacción asíncrona de autopoiesis.
+
+## Bus de federaciones y Realito Gen-4
+
+- `src/federaciones/FederationBus.ts` suscribe eventos de hospedaje y activa flujos cruzados con gastronomía.
+- `src/realito/gen4/ExperienceOrchestrator.ts` evalúa geovallas y riesgo de abandono con fórmula Haversine.
+- `src/components/map/LSMRenderEngine.tsx` renderiza nodos en tiempo real para capas de movilidad/economía.
+
+## Verificación rápida
+
+```bash
+npm run build
+go build ./cmd/sovereign-proxy
+```
+
+> Nota: `npm run lint` actualmente reporta deuda técnica histórica en múltiples módulos (frontend y server). Se recomienda abordarla por lotes sin bloquear despliegues críticos.
+
+## Roadmap de cierre técnico
+
+1. Endurecer tipado en `server/src/routes/*` y `src/lib/*` para eliminar `any` heredados.
+2. Formalizar canal WebSocket backend para `LSM_REALTIME_STREAM` con contratos de evento versionados.
+3. Integrar CI dual (web + proxy) con validación de binarios `amd64/arm64`.
+4. Consolidar migraciones SQL soberanas en carpeta versionada (`supabase/migrations` o `db/migrations`).
+5. Instrumentar observabilidad edge (latencia espacial, presión zonal, eventos por federación).
+
+---
+
+**Estado:** repositorio evolucionado para operación soberana edge-first, manteniendo compatibilidad con el stack web/API actual.
