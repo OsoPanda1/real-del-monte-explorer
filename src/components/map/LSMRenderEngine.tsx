@@ -63,6 +63,10 @@ export const LSMRenderEngine = ({ capaActiva, initialViewState }: LSMRenderProps
   const lastEvent = useWebSocketSubscription<LSMNodeEvent>('LSM_REALTIME_STREAM');
 
   useEffect(() => {
+    setNodosLSM([]);
+  }, [capaActiva]);
+
+  useEffect(() => {
     if (!lastEvent || lastEvent.capa !== capaActiva) {
       return;
     }
