@@ -1,15 +1,14 @@
-import { useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Quote, Heart, Sparkles, Lightbulb, Users, Clock, 
-  Search, Filter, ChevronDown, Volume2, Share2, BookOpen
+  Search, Share2, BookOpen
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from "@/components/ui/select";
@@ -465,6 +464,8 @@ const DichosPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedSaid, setExpandedSaid] = useState<string | null>(null);
   const [likedDichos, setLikedDichos] = useState<Set<string>>(new Set());
+  const [contribution, setContribution] = useState({ name: "", phrase: "", meaning: "" });
+  const browseRef = useRef<HTMLDivElement>(null);
 
   // Filter dichos
   const filteredDichos = DICHOS.filter(dicho => {
@@ -491,6 +492,34 @@ const DichosPage = () => {
 
   // Get featured (top liked)
   const featuredDichos = [...DICHOS].sort((a, b) => b.likes - a.likes).slice(0, 3);
+
+  const handleExplore = () => {
+    browseRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleShare = async (dichoText: string) => {
+    const text = `Dicho minero: "${dichoText}" · Fuente: RDM Digital`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Dichos Mineros", text });
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+      toast({ title: "Compartido", description: "El dicho fue compartido/copiado." });
+    } catch {
+      toast({ title: "No se pudo compartir", description: "Intenta nuevamente.", variant: "destructive" });
+    }
+  };
+
+  const handleContributionSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!contribution.name || !contribution.phrase || !contribution.meaning) {
+      toast({ title: "Completa los campos", description: "Falta información del dicho.", variant: "destructive" });
+      return;
+    }
+    toast({ title: "¡Gracias por contribuir!", description: "Tu dicho se enviará para revisión cultural." });
+    setContribution({ name: "", phrase: "", meaning: "" });
+  };
 
   return (
     <PageTransition>
@@ -528,7 +557,7 @@ const DichosPage = () => {
               </p>
 
               <div className="flex flex-wrap gap-3">
-                <Button className="bg-amber-600 hover:bg-amber-700">
+                <Button className="bg-amber-600 hover:bg-amber-700" onClick={handleExplore}>
                   <BookOpen className="w-4 h-4 mr-2" />
                   Explorar Dichos
                 </Button>
@@ -538,7 +567,7 @@ const DichosPage = () => {
         </div>
 
         {/* Search and Filter */}
-        <div className="container mx-auto px-4 md:px-8 py-8">
+        <div ref={browseRef} className="container mx-auto px-4 md:px-8 py-8">
           <div className="flex flex-col md:flex-row gap-4 mb-8">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -724,7 +753,13 @@ const DichosPage = () => {
                               <Heart className={`w-4 h-4 ${likedDichos.has(dicho.id) ? "fill-red-500 text-red-500" : ""}`} />
                               {dicho.likes + (likedDichos.has(dicho.id) ? 1 : 0)}
                             </button>
-                            <button className="text-sm text-muted-foreground hover:text-amber-500 transition-colors">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleShare(dicho.texto);
+                              }}
+                              className="text-sm text-muted-foreground hover:text-amber-500 transition-colors"
+                            >
                               <Share2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -749,12 +784,33 @@ const DichosPage = () => {
                   Ayúdanos a preservar la cultura de Real del Monte contribuyendo con 
                   dichos o expresiones tradicionales que conozcas.
                 </p>
-                <Button 
-                  variant="secondary" 
-                  className="bg-white text-amber-700 hover:bg-white/90"
-                >
-                  Contribuir con un Dichos
-                </Button>
+                <form onSubmit={handleContributionSubmit} className="mx-auto mt-6 grid max-w-2xl gap-3 text-left">
+                  <Input
+                    placeholder="Tu nombre"
+                    value={contribution.name}
+                    onChange={(e) => setContribution((prev) => ({ ...prev, name: e.target.value }))}
+                    className="bg-white/90 text-slate-900"
+                  />
+                  <Input
+                    placeholder="Dicho tradicional"
+                    value={contribution.phrase}
+                    onChange={(e) => setContribution((prev) => ({ ...prev, phrase: e.target.value }))}
+                    className="bg-white/90 text-slate-900"
+                  />
+                  <Input
+                    placeholder="Significado"
+                    value={contribution.meaning}
+                    onChange={(e) => setContribution((prev) => ({ ...prev, meaning: e.target.value }))}
+                    className="bg-white/90 text-slate-900"
+                  />
+                  <Button 
+                    type="submit"
+                    variant="secondary" 
+                    className="bg-white text-amber-700 hover:bg-white/90"
+                  >
+                    Contribuir con un dicho
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </section>
