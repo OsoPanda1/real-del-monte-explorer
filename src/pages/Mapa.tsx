@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Star, Award, Phone, X, Filter, Navigation } from "lucide-react";
+import { MapPin, Star, Award, Phone, X, Filter, Navigation, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -100,10 +100,26 @@ function MapController({ selected, markers }: { selected: MapMarkerData | null, 
 const MapaPage = () => {
   const [selected, setSelected] = useState<MapMarkerData | null>(null);
   const [filter, setFilter] = useState<"all" | "place" | "business">("all");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
 
-  const filtered = markers.filter((m) =>
-    filter === "all" ? true : m.type === filter
-  );
+  const filtered = markers.filter((m) => {
+    const byType = filter === "all" ? true : m.type === filter;
+    const bySearch =
+      search.trim().length === 0 ||
+      m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.category.toLowerCase().includes(search.toLowerCase());
+
+    return byType && bySearch;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, search]);
 
   return (
     <PageTransition>
@@ -130,7 +146,7 @@ const MapaPage = () => {
             </motion.div>
 
             {/* Filters */}
-            <div className="flex flex-wrap gap-3 mb-8">
+            <div className="mb-4 flex flex-wrap gap-3">
               {[
                 { key: "all", label: "Señal Global", count: markers.length },
                 { key: "place", label: "Puntos Históricos", count: markers.filter(m => m.type === "place").length },
@@ -152,6 +168,21 @@ const MapaPage = () => {
                   <span className="text-xs opacity-50">[{f.count}]</span>
                 </button>
               ))}
+            </div>
+
+            <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <label className="relative w-full md:max-w-sm">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar por nombre o categoría..."
+                  className="w-full rounded-lg border border-slate-800 bg-slate-900/70 py-2 pl-10 pr-3 text-sm text-slate-200 outline-none focus:border-blue-500/50"
+                />
+              </label>
+              <p className="text-xs font-mono uppercase tracking-wider text-slate-500">
+                Mostrando {filtered.length} objetivos tácticos
+              </p>
             </div>
 
             {/* Map + HUD Sidebar */}
@@ -288,7 +319,7 @@ const MapaPage = () => {
                     </h4>
                   </div>
                   <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-                    {filtered.map((m) => (
+                    {paginated.map((m) => (
                       <button
                         key={m.id}
                         onClick={() => setSelected(m)}
@@ -308,6 +339,29 @@ const MapaPage = () => {
                         )}
                       </button>
                     ))}
+
+                    {paginated.length === 0 && (
+                      <div className="rounded-xl border border-dashed border-slate-700 p-4 text-center text-xs text-slate-500">
+                        No encontramos puntos para ese filtro/búsqueda.
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between border-t border-slate-800 px-3 py-2 text-xs text-slate-500">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="inline-flex items-center gap-1 rounded border border-slate-700 px-2 py-1 disabled:opacity-40"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" /> Anterior
+                    </button>
+                    <span className="font-mono">Página {page} / {totalPages}</span>
+                    <button
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="inline-flex items-center gap-1 rounded border border-slate-700 px-2 py-1 disabled:opacity-40"
+                    >
+                      Siguiente <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </div>
               </div>

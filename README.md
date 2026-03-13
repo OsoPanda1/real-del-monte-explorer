@@ -1,73 +1,79 @@
-# Welcome to your Lovable project
+# RDM Digital Explorer
 
-## Project info
+Plataforma turística de **Real del Monte** con enfoque narrativo, mapa interactivo, directorio local, eventos y asistente digital.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Qué incluye hoy
 
-## How can I edit this code?
+- **Frontend React + Vite + TypeScript** con diseño temático nocturno.
+- **Mapa interactivo** con filtros, búsqueda y paginación del directorio de puntos.
+- **Pantalla de introducción inmersiva** (consentimiento + video narrativo inicial).
+- **Asistente REALITO** para recomendaciones de rutas, gastronomía, historia y eventos.
+- **Backend Express + Prisma** para APIs y módulos de contenido exploratorio temático.
 
-There are several ways of editing your application.
+## Arquitectura (resumen)
 
-**Use Lovable**
+- `src/` → aplicación web (rutas, páginas, componentes UI).
+- `server/src/` → API backend (Express, middlewares, rutas).
+- `server/prisma/` → esquema y seeds de datos.
+- `k8s/` → manifiestos de despliegue (frontend/backend).
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Scripts principales
 
-Changes made via Lovable will be committed automatically to this repo.
+### Frontend
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm install
 npm run dev
+npm run build
+npm run lint
 ```
 
-**Edit a file directly in GitHub**
+### Backend
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+cd server
+npm install
+npm run dev
+npm run build
+npm run db:generate
+```
 
-**Use GitHub Codespaces**
+## Variables de entorno clave
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Frontend
 
-## What technologies are used for this project?
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
-This project is built with:
+### Backend (`server/.env`)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `FRONTEND_URL`
+- `STRIPE_SECRET_KEY` (si se usa pagos)
 
-## How can I deploy this project?
+## Flujo de producto
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+1. Intro inmersiva con consentimiento de audio/video.
+2. Home con narrativa, secciones de contenido y acceso rápido.
+3. Mapa con visualización táctica de lugares y negocios.
+4. Exploración por tema (`historia`, `cultura`, `gastronomia`, `ecoturismo`) vía `/api/explore/theme/:slug`.
+5. Chat contextual para recomendaciones turísticas.
 
-## Can I connect a custom domain to my Lovable project?
+## Estado y mejoras en curso
 
-Yes, you can!
+- Se hicieron correcciones para estabilizar módulos faltantes (`explore route`, `LiveEventBadge`) y conflictos de merge.
+- Se añadió base de mejora visual del mapa (search + paginación) e intro narrativa.
+- Persisten tareas pendientes globales del backend no relacionadas con este ajuste (tipado/dependencias en módulos legacy).
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Roadmap sugerido (integración mayor)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- Consolidar contratos de API (`zod`/OpenAPI) para frontend-backend.
+- Estandarizar diseño visual de páginas y componentes con sistema de tokens.
+- Añadir tests de integración para `/api/explore` y flujos críticos de mapa/chat.
+- Pipeline de CI con lint + typecheck + build frontend/backend.
+- Estrategia de convergencia multi-repo hacia `tamv-digital-nexus` por dominios funcionales.
+
+---
+
+Si quieres, en el siguiente paso te preparo un **plan de integración por fases (90 días)** para unificar repositorios, APIs y despliegue continuo sin romper producción.
