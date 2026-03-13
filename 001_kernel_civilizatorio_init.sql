@@ -40,6 +40,10 @@ RETURNS TRIGGER AS $$
 DECLARE
   presion NUMERIC;
 BEGIN
+  IF NEW.carga_maxima = 0 THEN
+    NEW.estado_saturacion := 'FLUIDA';
+    RETURN NEW;
+  END IF;
   presion := NEW.carga_actual::NUMERIC / NEW.carga_maxima::NUMERIC;
 
   IF presion >= 0.85 THEN
