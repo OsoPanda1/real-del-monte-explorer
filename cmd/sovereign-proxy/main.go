@@ -46,6 +46,7 @@ func main() {
 		req.Header.Add("X-RDM-Edge-Node", "Active")
 		req.URL.Scheme = cloudURL.Scheme
 		req.URL.Host = cloudURL.Host
+		req.Host = cloudURL.Host
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
