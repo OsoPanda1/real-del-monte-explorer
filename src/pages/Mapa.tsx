@@ -1,25 +1,13 @@
-import { useMemo, useState } from "react";
-import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import {
-  Award,
-  Compass,
-  Filter,
-  Layers,
-  LocateFixed,
-  MapPin,
-  Phone,
-  Radar,
-  Search,
-  Star,
-  Zap,
-} from "lucide-react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { lazy, Suspense, useMemo, useState } from "react";
+import { Award, Filter, Layers, LocateFixed, MapPin, Phone, Radar, Search, Star, Zap } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 import { PAGE_SEO, SEOMeta } from "@/components/SEOMeta";
 import { Link } from "react-router-dom";
+import { Map2DPanel } from "@/components/map/Map2DPanel";
+import { MapSyncProvider, useMapSync } from "@/hooks/useMapSync";
+import type { MapMarkerData, MarkerType } from "@/features/places/mapTypes";
 
 import pasteImg from "@/assets/paste.webp";
 import minaImg from "@/assets/mina-acosta.webp";
@@ -27,22 +15,7 @@ import panteonImg from "@/assets/panteon-ingles.webp";
 import penasImg from "@/assets/penas-cargadas.webp";
 import callesImg from "@/assets/calles-colonial.webp";
 
-type MarkerType = "place" | "business";
-
-interface MapMarkerData {
-  id: string;
-  name: string;
-  category: string;
-  lat: number;
-  lng: number;
-  description: string;
-  image: string;
-  type: MarkerType;
-  isPremium?: boolean;
-  rating?: number;
-  phone?: string;
-  status: "Activo" | "En alta demanda" | "Verificado";
-}
+const Map3DTwin = lazy(() => import("@/components/map/Map3DTwin").then((module) => ({ default: module.Map3DTwin })));
 
 const markers: MapMarkerData[] = [
   { id: "1", name: "Mina de Acosta", category: "Mina", lat: 20.141, lng: -98.672, description: "Museo y túneles históricos de minería con experiencias guiadas inmersivas.", image: minaImg, type: "place", rating: 4.8, status: "Verificado" },
@@ -55,30 +28,12 @@ const markers: MapMarkerData[] = [
   { id: "8", name: "Café La Neblina", category: "Restaurante", lat: 20.1382, lng: -98.6742, description: "Café de altura con ambiente local y reservación express.", image: panteonImg, type: "business", rating: 4.4, status: "Activo" },
 ];
 
-const createIcon = (type: MarkerType, isPremium?: boolean) => {
-  const color = isPremium ? "#f59e0b" : type === "place" ? "#60a5fa" : "#34d399";
-  return L.divIcon({
-    className: "custom-map-pin",
-    html: `<span style="display:flex;width:${isPremium ? 32 : 24}px;height:${isPremium ? 32 : 24}px;border-radius:999px;background:${color};box-shadow:0 0 0 4px rgba(15,23,42,.75),0 0 14px ${color};border:1px solid rgba(255,255,255,.7);"></span>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  });
-};
-
-function MapFocus({ selected }: { selected: MapMarkerData | null }) {
-  const map = useMap();
-
-  if (selected) {
-    map.flyTo([selected.lat, selected.lng], 15, { duration: 0.8 });
-  }
-
-  return null;
-}
-
-export default function MapaPage() {
+function MapaPageContent() {
   const [filter, setFilter] = useState<"all" | MarkerType>("all");
   const [selected, setSelected] = useState<MapMarkerData | null>(markers[0]);
   const [query, setQuery] = useState("");
+  const [mode, setMode] = useState<"2d" | "3d">("2d");
+  const { viewport, syncFrom2D, syncFrom3D } = useMapSync();
 
   const handleFilterChange = (nextFilter: MarkerType | "all") => {
     setFilter(nextFilter);
@@ -132,93 +87,107 @@ export default function MapaPage() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(200,163,86,.25),transparent_45%)]" />
             <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-gold-500/50 bg-gold-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-300">
-                  <Compass className="h-3.5 w-3.5" /> Gemelo Digital en Tiempo Real
-                </p>
                 <h1 className="font-serif text-3xl text-gold-400 md:text-4xl">Mapa inteligente de Real del Monte</h1>
-                <p className="mt-2 max-w-2xl text-sm text-silver-400">
-                  Explora lugares, negocios y experiencias con búsqueda dinámica, filtros avanzados y una vista
-                  inmersiva diseñada para convertir cada visita en una ruta inolvidable.
+                <p className="mt-2 max-w-2xl text-sm text-silver-400 md:text-base">
+                  Infraestructura cartográfica optimizada para TAMV Online con clustering dinámico, sincronización 2D/3D y visual neblinoso cinematográfico.
                 </p>
               </div>
-              <div className="flex items-center gap-2 self-start rounded-full border border-white/20 bg-white/5 p-1 text-xs">
-                <button className="rounded-full px-4 py-2 text-silver-300 transition hover:bg-white/10">2D</button>
-                <button className="rounded-full bg-gold-500 px-4 py-2 font-semibold text-night-900">3D Mesh</button>
+              <div className="inline-flex rounded-full border border-white/15 bg-white/5 p-1 text-xs">
+                <button
+                  onClick={() => setMode("2d")}
+                  className={`rounded-full px-4 py-2 transition ${mode === "2d" ? "bg-gold-500 text-night-900" : "text-silver-300 hover:bg-white/10"}`}
+                >
+                  Vista 2D
+                </button>
+                <button
+                  onClick={() => setMode("3d")}
+                  className={`rounded-full px-4 py-2 transition ${mode === "3d" ? "bg-gold-500 text-night-900" : "text-silver-300 hover:bg-white/10"}`}
+                >
+                  Gemelo 3D
+                </button>
               </div>
             </div>
           </header>
 
-          <section className="grid gap-3 md:grid-cols-3">
+          <section className="grid gap-4 md:grid-cols-3">
             {stats.map((item) => (
-              <article key={item.label} className="glass-dark rounded-2xl border border-white/10 p-4">
+              <div key={item.label} className="glass-dark rounded-2xl border border-white/10 p-4">
                 <div className="flex items-center gap-3">
-                  <span className="rounded-xl bg-gold-500/20 p-2 text-gold-300">
-                    <item.icon className="h-4 w-4" />
-                  </span>
+                  <div className="rounded-xl bg-white/5 p-2">
+                    <item.icon className="h-5 w-5 text-gold-400" />
+                  </div>
                   <div>
-                    <p className="text-xs uppercase text-silver-500">{item.label}</p>
+                    <p className="text-xs uppercase tracking-wide text-silver-500">{item.label}</p>
                     <p className="text-xl font-semibold text-silver-200">{item.value}</p>
                   </div>
                 </div>
-              </article>
+              </div>
             ))}
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-12">
+          <section className="grid gap-6 lg:grid-cols-12">
             <div className="space-y-4 lg:col-span-8">
-              <div className="glass-dark flex flex-col gap-3 rounded-2xl border border-white/10 p-3 md:flex-row md:items-center">
-                <div className="relative flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-silver-500" />
-                  <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Buscar por nombre, categoría o experiencia"
-                    className="w-full rounded-xl border border-white/10 bg-night-700/80 py-2 pl-9 pr-3 text-sm text-silver-200 outline-none ring-gold-500/30 placeholder:text-silver-500 focus:ring"
-                  />
+              <div className="glass-dark rounded-2xl border border-white/10 p-4">
+                <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+                  <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-night-800/80 px-3 py-2">
+                    <Search className="h-4 w-4 text-silver-500" />
+                    <input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Buscar lugares, comercios o experiencias..."
+                      className="w-full bg-transparent text-sm text-silver-200 outline-none placeholder:text-silver-500"
+                    />
+                  </div>
+                  <button
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-silver-300"
+                    onClick={() => handleFilterChange("place")}
+                  >
+                    <Filter className="h-4 w-4" /> Lugares
+                  </button>
+                  <button
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-silver-300"
+                    onClick={() => handleFilterChange("business")}
+                  >
+                    <Layers className="h-4 w-4" /> Negocios
+                  </button>
                 </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { key: "all", label: "Todo" },
-                    { key: "place", label: "Lugares" },
-                    { key: "business", label: "Comercios" },
-                  ].map((item) => (
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  {["all", "place", "business"].map((item) => (
                     <button
-                      key={item.key}
-                      onClick={() => handleFilterChange(item.key as "all" | MarkerType)}
-                      className={`rounded-full border px-3 py-2 text-xs ${
-                        filter === item.key
-                          ? "border-gold-500 bg-gold-500/20 text-gold-300"
-                          : "border-white/10 bg-white/5 text-silver-400 hover:bg-white/10"
+                      key={item}
+                      onClick={() => handleFilterChange(item as "all" | MarkerType)}
+                      className={`rounded-full border px-3 py-1.5 ${
+                        filter === item
+                          ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                          : "border-white/10 bg-white/5 text-silver-400 hover:border-white/20"
                       }`}
                     >
-                      <Filter className="mr-1 inline h-3.5 w-3.5" /> {item.label}
+                      {item === "all" ? "Todo" : item === "place" ? "Lugares" : "Negocios"}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-white/10">
-                <MapContainer center={[20.1374, -98.6732]} zoom={14} className="h-[420px] w-full md:h-[640px]" zoomControl>
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                {mode === "2d" ? (
+                  <Map2DPanel
+                    markers={filtered}
+                    selected={selected}
+                    viewport={viewport}
+                    onSelect={setSelected}
+                    onViewportChange={syncFrom2D}
                   />
-                  <MapFocus selected={selected} />
-                  {filtered.map((marker) => (
-                    <Marker
-                      key={marker.id}
-                      position={[marker.lat, marker.lng]}
-                      icon={createIcon(marker.type, marker.isPremium)}
-                      eventHandlers={{ click: () => setSelected(marker) }}
-                    >
-                      <Popup>
-                        <strong>{marker.name}</strong>
-                        <p>{marker.description}</p>
-                      </Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
+                ) : (
+                  <Suspense
+                    fallback={
+                      <div className="flex h-[420px] items-center justify-center bg-night-900/70 text-sm text-silver-400 md:h-[640px]">
+                        Cargando Gemelo Digital 3D...
+                      </div>
+                    }
+                  >
+                    <Map3DTwin viewport={viewport} markers={filtered} onViewportChange={syncFrom3D} />
+                  </Suspense>
+                )}
               </div>
             </div>
 
@@ -287,10 +256,12 @@ export default function MapaPage() {
               </div>
 
               <div className="rounded-2xl border border-gold-500/30 bg-gold-500/10 p-4">
-                <h3 className="font-semibold text-gold-300">¿Tienes negocio?</h3>
-                <p className="mt-2 text-sm text-silver-400">
-                  Regístralo en el catálogo, activa tu plan mensual y destaca en el mapa con visibilidad premium.
-                </p>
+                <h3 className="font-semibold text-gold-300">Capa Realito AI (Plan de implementación)</h3>
+                <ol className="mt-2 list-decimal space-y-1 pl-4 text-sm text-silver-400">
+                  <li>Asistente contextual por POI con intentos de ruta, horario y compra.</li>
+                  <li>Streaming geoespacial de eventos por WebSocket federado.</li>
+                  <li>Sugerencias proactivas según densidad, clima y perfil de visitante.</li>
+                </ol>
                 <Link to="/negocios" className="mt-3 inline-block rounded-lg bg-gold-500 px-3 py-2 text-sm font-semibold text-night-900">
                   Ir al portal de comercios
                 </Link>
@@ -302,5 +273,14 @@ export default function MapaPage() {
         <Footer />
       </div>
     </PageTransition>
+  );
+}
+
+
+export default function MapaPage() {
+  return (
+    <MapSyncProvider>
+      <MapaPageContent />
+    </MapSyncProvider>
   );
 }
