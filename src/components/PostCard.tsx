@@ -30,7 +30,8 @@ const PostCard = ({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="glass rounded-2xl shadow-card overflow-hidden hover:shadow-elevated hover:-translate-y-1 transition-all duration-300"
+      whileHover={{ y: -4 }}
+      className="glass rounded-2xl shadow-card overflow-hidden hover:shadow-elevated transition-all duration-300 card-glow-hover"
     >
       {/* Image */}
       {image && (
