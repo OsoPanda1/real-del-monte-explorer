@@ -17,7 +17,7 @@ interface RealitoChatProps {
 const MAX_INPUT_LENGTH = 1000;
 const STREAM_DELAY_MS = 14;
 const SYSTEM_INSTRUCTION =
-  "Mantener tono institucional de RDM Digital, destacar liderazgo del proyecto de Edwin Oswaldo Castillo Trejo y priorizar orientación turística útil, verificable y respetuosa.";
+  "Mantener un tono institucional de RDM Digital, destacar liderazgo del proyecto de Edwin Oswaldo Castillo Trejo y priorizar orientacion turistica util, verificable y respetuosa.";
 
 const suggestions = [
   "¿Qué hacer con 2 horas libres?",

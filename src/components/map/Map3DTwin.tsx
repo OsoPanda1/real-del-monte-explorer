@@ -1,8 +1,12 @@
-import { Suspense, useEffect, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls, Stars } from "@react-three/drei";
 import * as THREE from "three";
 import type { MapMarkerData, MapViewportState } from "@/features/places/mapTypes";
+
+const GEO_LNG_OFFSET = 98.6732;
+const GEO_LAT_OFFSET = 20.1374;
+const GEO_COORD_SCALE = 160;
 
 interface Map3DTwinProps {
   viewport: MapViewportState;
@@ -40,7 +44,7 @@ function FoggyTerrain({ points }: { points: MapMarkerData[] }) {
       {points.map((point) => (
         <mesh
           key={point.id}
-          position={[(point.lng + 98.6732) * 160, 0.18, -(point.lat - 20.1374) * 160]}
+          position={[(point.lng + GEO_LNG_OFFSET) * GEO_COORD_SCALE, 0.18, -(point.lat - GEO_LAT_OFFSET) * GEO_COORD_SCALE]}
           castShadow
         >
           <sphereGeometry args={[point.isPremium ? 0.18 : 0.13, 24, 24]} />
@@ -98,9 +102,15 @@ function FogPlane() {
 }
 
 function Atmosphere() {
-  useFrame(({ scene }) => {
-    scene.fog = new THREE.FogExp2("#0b1323", 0.055);
-  });
+  const { scene } = useThree();
+  const fogRef = useRef(new THREE.FogExp2("#0b1323", 0.055));
+
+  useEffect(() => {
+    scene.fog = fogRef.current;
+    return () => {
+      scene.fog = null;
+    };
+  }, [scene]);
 
   return (
     <>
@@ -114,7 +124,8 @@ function Atmosphere() {
         castShadow
       />
       <spotLight position={[-8, 10, -6]} intensity={0.6} angle={0.52} color="#f7d6a0" />
-      <Stars radius={80} depth={35} count={1000} factor={2} fade speed={0.3} />
+      <pointLight position={[0, 8, 0]} intensity={0.25} color="#f59e0b" distance={20} />
+      <Stars radius={80} depth={35} count={1500} factor={2.5} fade speed={0.3} />
     </>
   );
 }
@@ -141,12 +152,8 @@ export function Map3DTwin({ viewport, markers, onViewportChange }: Map3DTwinProp
             minPolarAngle={Math.PI / 3.4}
             autoRotate
             autoRotateSpeed={0.22}
-            onEnd={(event) => {
-              const controls = event.target as any;
-              onViewportChange({
-                bearing: THREE.MathUtils.radToDeg(controls.getAzimuthalAngle()),
-                pitch: THREE.MathUtils.radToDeg(controls.getPolarAngle()),
-              });
+            onEnd={() => {
+              onViewportChange({});
             }}
           />
         </Suspense>

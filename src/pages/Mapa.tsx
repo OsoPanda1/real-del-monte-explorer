@@ -1,9 +1,12 @@
 import { lazy, Suspense, useMemo, useState } from "react";
-import { Award, Filter, Layers, LocateFixed, MapPin, Phone, Radar, Search, Star, Zap } from "lucide-react";
+import { Award, Filter, Layers, LocateFixed, MapPin, Phone, Radar, Search, Star, Zap, Compass } from "lucide-react";
+import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
+import GradientSeparator from "@/components/GradientSeparator";
 import { PAGE_SEO, SEOMeta } from "@/components/SEOMeta";
+import { AuroraBackground } from "@/components/VisualEffects";
 import { Link } from "react-router-dom";
 import { Map2DPanel } from "@/components/map/Map2DPanel";
 import { MapSyncProvider, useMapSync } from "@/hooks/useMapSync";
@@ -82,14 +85,42 @@ function MapaPageContent() {
       <div className="min-h-screen bg-night-900 text-silver-300 cinematic-gradient">
         <Navbar />
 
-        <main className="mx-auto max-w-7xl space-y-5 px-4 pb-12 pt-24 md:px-6">
-          <header className="glass-dark neon-glow relative overflow-hidden rounded-3xl p-6">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(200,163,86,.25),transparent_45%)]" />
-            <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h1 className="font-serif text-3xl text-gold-400 md:text-4xl">Mapa inteligente de Real del Monte</h1>
-                <p className="mt-2 max-w-2xl text-sm text-silver-400 md:text-base">
-                  Infraestructura cartográfica optimizada para TAMV Online con clustering dinámico, sincronización 2D/3D y visual neblinoso cinematográfico.
+        {/* Immersive Hero */}
+        <section className="relative overflow-hidden pt-24 pb-10">
+          <div className="absolute inset-0 bg-cover bg-center opacity-15" style={{ backgroundImage: `url(${callesImg})` }} />
+          <div className="absolute inset-0 bg-gradient-to-b from-night-900/80 via-night-900/70 to-night-900" />
+          <AuroraBackground />
+          <div className="dust-particles" />
+
+          <div className="relative mx-auto max-w-7xl px-4 py-12 md:px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+            >
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.2em] backdrop-blur-sm">
+                  <Compass className="h-3.5 w-3.5 text-gold-400" />
+                  <span>Gemelo Digital en Tiempo Real</span>
+                </div>
+                <h1 className="font-serif text-4xl md:text-6xl leading-tight">
+                  <span className="block">Mapa</span>
+                  <span
+                    className="block animate-gradient-text text-glow-gold"
+                    style={{
+                      backgroundImage: "linear-gradient(135deg, hsl(43,80%,55%) 0%, hsl(35,70%,65%) 25%, hsl(43,80%,55%) 50%, hsl(25,60%,50%) 75%, hsl(43,80%,55%) 100%)",
+                      backgroundSize: "200% 200%",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    }}
+                  >
+                    Inteligente
+                  </span>
+                </h1>
+                <p className="max-w-2xl text-base text-silver-400 md:text-lg leading-relaxed">
+                  Infraestructura cartografica con clustering dinamico, sincronizacion 2D/3D y visual neblinoso cinematografico.
                 </p>
               </div>
               <div className="inline-flex rounded-full border border-white/15 bg-white/5 p-1 text-xs">
@@ -106,8 +137,13 @@ function MapaPageContent() {
                   Gemelo 3D
                 </button>
               </div>
-            </div>
-          </header>
+            </motion.div>
+          </div>
+        </section>
+
+        <GradientSeparator animated />
+
+        <main className="mx-auto max-w-7xl space-y-5 px-4 pb-12 md:px-6">
 
           <section className="grid gap-4 md:grid-cols-3">
             {stats.map((item) => (
