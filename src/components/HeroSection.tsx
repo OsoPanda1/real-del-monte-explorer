@@ -1,47 +1,152 @@
-import { motion } from "framer-motion";
-import { ChevronDown, MapPin } from "lucide-react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useRef } from "react";
+import { ChevronDown, MapPin, Compass, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImg from "@/assets/hero-real-del-monte.webp";
+import { AuroraBackground } from "@/components/VisualEffects";
 
 export default function HeroSection() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end start"],
+  });
+
+  const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+
   return (
-    <section className="relative min-h-screen overflow-hidden bg-night-900 text-silver-300">
-      <div className="absolute inset-0 bg-cover bg-center opacity-35" style={{ backgroundImage: `url(${heroImg})` }} />
-      <div className="absolute inset-0 bg-gradient-to-b from-night-900/75 via-night-900/70 to-night-900" />
+    <section ref={containerRef} className="relative min-h-screen overflow-hidden bg-night-900 text-silver-300">
+      {/* Parallax Background */}
+      <motion.div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${heroImg})`, y: backgroundY, scale: 1.1, opacity: 0.4 }}
+      />
 
-      <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-6 text-center">
+      {/* Gradient Overlays */}
+      <div className="absolute inset-0 bg-gradient-to-b from-night-900/80 via-night-900/60 to-night-900" />
+      <div className="absolute inset-0 bg-gradient-to-r from-night-900/40 via-transparent to-night-900/40" />
+
+      {/* Aurora Ambient */}
+      <AuroraBackground />
+
+      {/* Floating Dust Particles */}
+      <div className="dust-particles" />
+
+      {/* Main Content */}
+      <motion.div
+        style={{ y: textY, opacity }}
+        className="relative mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-6 text-center"
+      >
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="space-y-6"
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="space-y-8"
         >
-          <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.2em]">
+          {/* Top Badge */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-xs uppercase tracking-[0.25em] backdrop-blur-sm"
+          >
             <MapPin className="h-3.5 w-3.5 text-gold-400" />
-            Real del Monte · Hidalgo
-          </div>
+            <span>Real del Monte</span>
+            <span className="mx-1 h-3 w-px bg-white/20" />
+            <span className="text-gold-400">Pueblo Magico</span>
+            <span className="mx-1 h-3 w-px bg-white/20" />
+            <span>Hidalgo</span>
+          </motion.div>
 
-          <h1 className="font-serif text-4xl leading-tight md:text-6xl">
-            Explora la magia de
-            <span className="block text-gold-400">Real del Monte</span>
-          </h1>
+          {/* Main Title */}
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+            className="font-serif text-5xl leading-tight md:text-7xl lg:text-8xl"
+          >
+            <span className="block">Explora la magia de</span>
+            <span
+              className="block animate-gradient-text text-glow-gold"
+              style={{
+                backgroundImage: "linear-gradient(135deg, hsl(43,80%,55%) 0%, hsl(35,70%,65%) 25%, hsl(43,80%,55%) 50%, hsl(25,60%,50%) 75%, hsl(43,80%,55%) 100%)",
+                backgroundSize: "200% 200%",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              Real del Monte
+            </span>
+          </motion.h1>
 
-          <p className="mx-auto max-w-2xl text-sm text-silver-400 md:text-base">
-            Historia minera, gastronomía local, eventos vivos y rutas culturales en una sola plataforma.
-          </p>
+          {/* Subtitle */}
+          <motion.p
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.7 }}
+            className="mx-auto max-w-2xl text-base text-silver-400 md:text-lg leading-relaxed"
+          >
+            Historia minera, gastronomia local, eventos vivos y rutas culturales
+            en una sola plataforma digital a 2,700 metros de altura.
+          </motion.p>
 
-          <div className="flex flex-wrap justify-center gap-3">
-            <Link to="/lugares" className="rounded-full bg-gold-500 px-6 py-3 text-sm font-semibold text-night-900">
-              Ver lugares
+          {/* Stats Row */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.9 }}
+            className="flex flex-wrap items-center justify-center gap-6 text-xs text-silver-500"
+          >
+            {[
+              { label: "Altitud", value: "2,700 msnm" },
+              { label: "Fundado", value: "1534" },
+              { label: "Pueblo Magico", value: "Desde 2004" },
+            ].map((stat) => (
+              <div key={stat.label} className="flex items-center gap-2">
+                <Sparkles className="h-3 w-3 text-gold-400/60" />
+                <span className="text-silver-300 font-medium">{stat.value}</span>
+                <span className="text-silver-500">{stat.label}</span>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* CTA Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 1.0 }}
+            className="flex flex-wrap justify-center gap-4 pt-2"
+          >
+            <Link
+              to="/mapa"
+              className="btn-hero-primary group inline-flex items-center gap-2"
+            >
+              <Compass className="h-4 w-4 transition-transform group-hover:rotate-45" />
+              Explorar mapa
             </Link>
-            <Link to="/rutas" className="rounded-full border border-white/20 px-6 py-3 text-sm">
-              Ver rutas
+            <Link
+              to="/rutas"
+              className="btn-hero-glass inline-flex items-center gap-2"
+            >
+              Ver rutas turisticas
             </Link>
-          </div>
+          </motion.div>
         </motion.div>
 
-        <ChevronDown className="absolute bottom-8 h-6 w-6 animate-bounce text-silver-500" />
-      </div>
+        {/* Scroll Indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-8 flex flex-col items-center gap-2"
+        >
+          <span className="text-[10px] uppercase tracking-[0.3em] text-silver-500">Descubre</span>
+          <ChevronDown className="h-5 w-5 animate-bounce text-gold-400/60" />
+        </motion.div>
+      </motion.div>
     </section>
   );
 }
