@@ -44,7 +44,6 @@ const localReply = (msg: string): string => {
   if (text.includes("isabella") || text.includes("tamv") || text.includes("nucleo")) {
     return `REALITO opera con la base ${ISABELLA_TAMV_PROFILE.productName} ${ISABELLA_TAMV_PROFILE.version}: ${TAMV_CAPABILITIES_SUMMARY.join(", ")}.`;
   }
-
   return "¡Hola! Soy REALITO 🤖. Te ayudo con rutas, gastronomía, historia y recomendaciones para explorar Real del Monte.";
 };
 

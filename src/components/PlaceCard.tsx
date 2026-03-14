@@ -17,7 +17,8 @@ const PlaceCard = ({ name, category, description, image, rating = 4.5, index = 0
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="group relative overflow-hidden rounded-2xl glass shadow-card hover:shadow-elevated transition-all duration-500 cursor-pointer hover:-translate-y-1"
+      whileHover={{ y: -6 }}
+      className="group relative overflow-hidden rounded-2xl glass shadow-card hover:shadow-elevated transition-all duration-500 cursor-pointer card-glow-hover"
     >
       {/* Image */}
       <div className="relative h-56 overflow-hidden">
@@ -28,6 +29,9 @@ const PlaceCard = ({ name, category, description, image, rating = 4.5, index = 0
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-card" />
+
+        {/* Shimmer overlay on hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
         {/* Category badge */}
         <div className="absolute top-3 left-3">
@@ -47,7 +51,7 @@ const PlaceCard = ({ name, category, description, image, rating = 4.5, index = 0
       <div className="p-5">
         <div className="flex items-start gap-1.5 mb-1">
           <MapPin className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-          <h3 className="font-serif text-lg font-semibold text-foreground leading-tight">
+          <h3 className="font-serif text-lg font-semibold text-foreground leading-tight group-hover:text-primary transition-colors duration-300">
             {name}
           </h3>
         </div>
