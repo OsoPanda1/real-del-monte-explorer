@@ -65,7 +65,7 @@ export default function RealitoChat({ initialOpen = false }: RealitoChatProps) {
 
     for (let i = 1; i <= content.length; i += 1) {
       const slice = content.slice(0, i);
-      setMessages((prev) => prev.map((message) => (message.id === id ? { ...message, content: slice } : message)));
+      setMessages((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], content: slice }]);
       await new Promise((resolve) => setTimeout(resolve, STREAM_DELAY_MS));
     }
   }, []);
