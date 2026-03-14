@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircle, Send, Sparkles, X } from "lucide-react";
 import logoRdm from "@/assets/logo-rdm.png";
+import { ISABELLA_TAMV_PROFILE, TAMV_CAPABILITIES_SUMMARY } from "@/features/ai/isabellaTamvBase";
 
 interface Message {
   id: string;
@@ -31,6 +32,11 @@ const localReply = (msg: string): string => {
 
   if (text.includes("ruta") || text.includes("historia")) {
     return "Ruta histórica sugerida: Plaza Principal → Parroquia de la Asunción → callejones coloniales → Museo del Paste → Mina de Acosta.";
+  }
+
+
+  if (text.includes("isabella") || text.includes("tamv") || text.includes("nucleo")) {
+    return `REALITO opera con la base ${ISABELLA_TAMV_PROFILE.productName} ${ISABELLA_TAMV_PROFILE.version}: ${TAMV_CAPABILITIES_SUMMARY.join(", ")}.`;
   }
 
   return "¡Hola! Soy REALITO 🤖. Te ayudo con rutas, gastronomía, historia y recomendaciones para explorar Real del Monte.";
@@ -106,7 +112,7 @@ export default function RealitoChat() {
               <img src={logoRdm} alt="REALITO" className="h-8 w-8 rounded-full" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-silver-300">REALITO</p>
-                <p className="text-xs text-silver-500">Asistente digital</p>
+                <p className="text-xs text-silver-500">Asistente digital · Núcleo ISABELLA TAMV</p>
               </div>
               <Sparkles className="h-4 w-4 text-gold-400" />
             </div>
