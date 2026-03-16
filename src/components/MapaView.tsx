@@ -1,233 +1,183 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import mapboxgl, { Map as MapboxMap } from "mapbox-gl";
-import { Map, Navigation, Compass, Layers } from "lucide-react";
-import { motion } from "framer-motion";
+import { Map as MapIcon, Navigation, Layers, Activity, Hexagon } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
-type ViewMode = "2d" | "3d";
-
-export default function MapaView() {
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+/**
+ * HOOK DE EVOLUCIÓN: Motor de Renderizado Mapbox
+ * Extrae la complejidad de inicialización para mantener el componente ligero.
+ */
+const useMapboxCore = (containerRef: React.RefObject<HTMLDivElement | null>, viewMode: "2d" | "3d") => {
   const mapRef = useRef<MapboxMap | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("3d");
-
-  // Coordenadas aproximadas de Real del Monte
   const CENTER = { lng: -98.6733, lat: 20.1389 };
 
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    if (!containerRef.current || mapRef.current) return;
 
     const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: "mapbox://styles/mapbox/satellite-streets-v12",
+      container: containerRef.current,
+      style: "mapbox://styles/mapbox/dark-v11", // Obsidian Mist Base
       center: [CENTER.lng, CENTER.lat],
-      zoom: 14,
-      pitch: 60,
-      bearing: -20,
+      zoom: 15,
+      pitch: viewMode === "3d" ? 60 : 0,
+      bearing: viewMode === "3d" ? -20 : 0,
       antialias: true,
     });
 
-    mapRef.current = map;
-
-    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
-
     map.on("load", () => {
-      // Terreno 3D
+      // Inyección de Terreno 3D
       map.addSource("mapbox-dem", {
         type: "raster-dem",
         url: "mapbox://mapbox.terrain-rgb",
         tileSize: 512,
         maxzoom: 14,
       });
-      map.setTerrain({ source: "mapbox-dem", exaggeration: 1.3 });
+      
+      if (viewMode === "3d") map.setTerrain({ source: "mapbox-dem", exaggeration: 1.5 });
 
-      // Edificios 3D
-      const layers = map.getStyle().layers || [];
-      const labelLayerId = layers.find(
-        (l: any) => l.type === "symbol" && l.layout && l.layout["text-field"]
-      )?.id;
-
-      map.addLayer(
-        {
-          id: "3d-buildings",
-          source: "composite",
-          "source-layer": "building",
-          filter: ["==", "extrude", "true"],
-          type: "fill-extrusion",
-          minzoom: 15,
-          paint: {
-            "fill-extrusion-color": "#c9c9c9",
-            "fill-extrusion-height": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              15,
-              0,
-              16,
-              ["get", "height"],
-            ],
-            "fill-extrusion-base": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              15,
-              0,
-              16,
-              ["get", "min_height"],
-            ],
-            "fill-extrusion-opacity": 0.7,
-          },
+      // Sky Layer para atmósfera de montaña
+      map.addLayer({
+        id: "sky",
+        type: "sky",
+        paint: {
+          "sky-type": "atmosphere",
+          "sky-atmosphere-sun": [0.0, 0.0],
+          "sky-atmosphere-sun-intensity": 15,
         },
-        labelLayerId
-      );
-
-      // Marcadores clave del gemelo digital
-      addPOIMarker(map, {
-        lng: -98.6733,
-        lat: 20.1389,
-        title: "Parroquia de Nuestra Señora del Rosario",
-        subtitle: "Active Node",
       });
 
-      addPOIMarker(map, {
-        lng: -98.6772,
-        lat: 20.1382,
-        title: "Mina de Acosta",
-        subtitle: "Digital Twin Synced",
+      // Extrusión Platinum para edificios
+      map.addLayer({
+        id: "3d-buildings",
+        source: "composite",
+        "source-layer": "building",
+        filter: ["==", "extrude", "true"],
+        type: "fill-extrusion",
+        minzoom: 15,
+        paint: {
+          "fill-extrusion-color": "#E5E7EB", // Platinum
+          "fill-extrusion-height": ["get", "height"],
+          "fill-extrusion-base": ["get", "min_height"],
+          "fill-extrusion-opacity": 0.5,
+        },
       });
+      
+      mapRef.current = map;
     });
 
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
+    return () => map.remove();
   }, []);
 
-  // Cambiar entre 2D y 3D con baja latencia (sólo ajusta pitch/bearing/terrain)
+  return mapRef;
+};
+
+export default function MapaView() {
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const [viewMode, setViewMode] = useState<"2d" | "3d">("3d");
+  const mapRef = useMapboxCore(mapContainerRef, viewMode);
+
+  // Efecto de transición de cámara
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
     if (viewMode === "2d") {
       map.setTerrain(undefined);
-      map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
+      map.flyTo({ pitch: 0, bearing: 0, duration: 2000 });
     } else {
-      map.setTerrain({ source: "mapbox-dem", exaggeration: 1.3 });
-      map.easeTo({ pitch: 60, bearing: -20, duration: 800 });
+      map.setTerrain({ source: "mapbox-dem", exaggeration: 1.5 });
+      map.flyTo({ pitch: 65, bearing: -25, zoom: 15.5, duration: 2000 });
     }
   }, [viewMode]);
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="font-serif text-3xl font-light italic">Gemelo Digital: Mapa</h2>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setViewMode("2d")}
-            className={`rounded-full px-4 py-2 text-xs transition-all ${
-              viewMode === "2d"
-                ? "bg-brand-amber text-black font-bold"
-                : "bg-white/10 hover:bg-white/20"
-            }`}
-          >
-            2D View
-          </button>
-          <button
-            onClick={() => setViewMode("3d")}
-            className={`rounded-full px-4 py-2 text-xs transition-all ${
-              viewMode === "3d"
-                ? "bg-brand-amber text-black font-bold"
-                : "bg-white/10 hover:bg-white/20"
-            }`}
-          >
-            3D Mesh
-          </button>
+    <div className="flex flex-col gap-6 p-2">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h2 className="text-4xl font-light tracking-tighter text-white">
+            Gemelo Digital <span className="italic text-slate-400">RDM</span>
+          </h2>
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-slate-500">
+            <Hexagon className="w-3 h-3 text-blue-400" />
+            <span>Sincronización LSM v4.2 - Activa</span>
+          </div>
         </div>
-      </div>
 
-      <div className="glass relative aspect-video overflow-hidden rounded-3xl">
-        <div ref={mapContainerRef} className="map-container" />
+        <nav className="flex bg-white/5 backdrop-blur-xl p-1 rounded-full border border-white/10">
+          {(["2d", "3d"] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              className={`px-6 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase transition-all ${
+                viewMode === mode ? "bg-white text-black shadow-lg" : "text-white/50 hover:text-white"
+              }`}
+            >
+              {mode} View
+            </button>
+          ))}
+        </nav>
+      </header>
 
-        {/* Overlay minimalista: “pulso” del gemelo digital */}
+      <section className="relative aspect-video w-full overflow-hidden rounded-[2.5rem] border border-white/10 bg-slate-900 shadow-2xl">
+        <div ref={mapContainerRef} className="h-full w-full" />
+        
+        {/* Crystal Glow Pulse Overlay */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <motion.div
-            animate={{ scale: [1, 1.08, 1], opacity: [0.18, 0.35, 0.18] }}
-            transition={{ duration: 5, repeat: Infinity }}
-            className="h-72 w-72 rounded-full border border-brand-amber/30"
+            animate={{ scale: [1, 1.2, 1], opacity: [0.05, 0.15, 0.05] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+            className="h-[40rem] w-[40rem] rounded-full border border-white/10 shadow-[inset_0_0_100px_rgba(255,255,255,0.05)]"
           />
         </div>
 
-        {/* Tarjeta de geolocalización actual */}
-        <div className="pointer-events-none absolute bottom-8 left-8 flex gap-4">
-          <div className="glass flex items-center gap-4 rounded-2xl p-4">
-            <div className="rounded-lg bg-brand-amber/20 p-2">
-              <Navigation className="h-4 w-4 text-brand-amber" />
+        {/* Telemetry Panel */}
+        <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end pointer-events-none">
+          <motion.div 
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            className="pointer-events-auto flex items-center gap-5 rounded-3xl border border-white/10 bg-black/60 p-5 backdrop-blur-2xl"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
+              <Navigation className="h-6 w-6 text-white animate-pulse" />
             </div>
             <div>
-              <p className="text-[10px] uppercase text-gray-500">Current Geolocation</p>
-              <p className="font-mono text-xs">
-                {CENTER.lat.toFixed(4)}° N, {Math.abs(CENTER.lng).toFixed(4)}° W
-              </p>
+              <p className="text-[10px] font-bold uppercase tracking-tighter text-slate-500">Node Location</p>
+              <p className="font-mono text-sm font-bold text-white tracking-widest">20.1389° N | 98.6733° W</p>
             </div>
+          </motion.div>
+          
+          <div className="text-right hidden md:block">
+            <p className="text-[10px] text-white/30 uppercase tracking-[0.4em]">Digital Sovereignty Protocol</p>
+            <p className="text-xs font-serif italic text-white/40">Real del Monte, Hidalgo</p>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Stats del gemelo digital */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      {/* Stats Engine Grid */}
+      <footer className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {[
-          { label: "Nodes Active", value: "124", icon: Layers },
-          { label: "Real-time Traffic", value: "Low", icon: Navigation },
-          { label: "Digital Coverage", value: "98.2%", icon: Map },
+          { label: "Active Federated Nodes", value: "124", icon: Layers, color: "text-blue-400" },
+          { label: "Kernel Frequency", value: "1.2 GHz", icon: Activity, color: "text-emerald-400" },
+          { label: "LSM Sync Matrix", value: "98.2%", icon: MapIcon, color: "text-platinum" },
         ].map((stat) => (
-          <div key={stat.label} className="glass rounded-2xl border border-white/5 p-6">
-            <div className="flex items-center gap-4">
-              <div className="rounded-xl bg-white/5 p-3">
-                <stat.icon className="h-5 w-5 text-brand-amber" />
+          <div key={stat.label} className="group overflow-hidden rounded-3xl border border-white/5 bg-white/[0.02] p-6 transition-all hover:bg-white/[0.05]">
+            <div className="flex items-center gap-5">
+              <div className="rounded-2xl bg-white/5 p-4 text-slate-400 group-hover:scale-110 transition-transform">
+                <stat.icon className={`h-6 w-6 ${stat.color}`} />
               </div>
               <div>
-                <p className="text-xs uppercase text-gray-500">{stat.label}</p>
-                <p className="text-xl font-bold">{stat.value}</p>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500">{stat.label}</p>
+                <p className="text-2xl font-light text-slate-100">{stat.value}</p>
               </div>
             </div>
           </div>
         ))}
-      </div>
+      </footer>
     </div>
   );
-}
-
-type POIConfig = {
-  lng: number;
-  lat: number;
-  title: string;
-  subtitle: string;
-};
-
-function addPOIMarker(map: MapboxMap, { lng, lat, title, subtitle }: POIConfig) {
-  const el = document.createElement("div");
-  el.className = "relative";
-
-  const ping = document.createElement("div");
-  ping.className =
-    "absolute inset-0 h-3 w-3 animate-ping rounded-full bg-brand-amber opacity-75";
-  const dot = document.createElement("div");
-  dot.className = "relative h-3 w-3 rounded-full bg-brand-amber";
-
-  const card = document.createElement("div");
-  card.className =
-    "glass absolute left-6 top-0 whitespace-nowrap rounded-lg px-3 py-1 shadow-lg";
-  card.innerHTML = `
-    <p class="text-[10px] font-bold">${title}</p>
-    <p class="text-[8px] text-brand-amber">${subtitle}</p>
-  `;
-
-  el.appendChild(ping);
-  el.appendChild(dot);
-  el.appendChild(card);
-
-  new mapboxgl.Marker(el).setLngLat([lng, lat]).addTo(map);
 }
