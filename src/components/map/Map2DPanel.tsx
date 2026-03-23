@@ -107,6 +107,10 @@ function getBounds(map: LeafletMap): [number, number, number, number] {
   return [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
 }
 
+function isClusterFeature(item: ClusterItem): item is ClusterFeature {
+  return Boolean((item.properties as ClusterProps).cluster);
+}
+
 function ClusterLayer({ markers, onSelect }: { markers: MapMarkerData[]; onSelect: (marker: MapMarkerData) => void }) {
   const map = useMap();
   const markerLookup = useMemo(() => new Map(markers.map((m) => [m.id, m])), [markers]);
@@ -147,15 +151,15 @@ function ClusterLayer({ markers, onSelect }: { markers: MapMarkerData[]; onSelec
         const { properties } = item;
 
         // Type Guard para diferenciar entre Cluster y Punto Individual
-        if (properties.cluster) {
+        if (isClusterFeature(item)) {
           return (
             <Marker
-              key={`cluster-${properties.cluster_id}-${idx}`}
+              key={`cluster-${item.properties.cluster_id}-${idx}`}
               position={[lat, lng]}
-              icon={createClusterIcon(properties.point_count)}
+              icon={createClusterIcon(item.properties.point_count)}
               eventHandlers={{
                 click: () => {
-                  const expansionZoom = index.getClusterExpansionZoom(properties.cluster_id);
+                  const expansionZoom = index.getClusterExpansionZoom(item.properties.cluster_id);
                   map.flyTo([lat, lng], Math.min(expansionZoom, 18), { duration: 0.6 });
                 },
               }}
@@ -163,7 +167,7 @@ function ClusterLayer({ markers, onSelect }: { markers: MapMarkerData[]; onSelec
           );
         }
 
-        const marker = markerLookup.get((properties as PointProps).markerId);
+        const marker = markerLookup.get(item.properties.markerId);
         if (!marker) return null;
 
         return (
@@ -207,6 +211,7 @@ export function Map2DPanel({ markers, selected, viewport, onSelect, onViewportCh
         className="h-[420px] w-full md:h-[640px]"
         zoomControl={true}
         scrollWheelZoom={true}
+        preferCanvas
       >
         <TileLayer attribution={tileConfig.attribution} url={tileConfig.url} />
         <MapEventBridge onViewportChange={onViewportChange} />
@@ -214,6 +219,13 @@ export function Map2DPanel({ markers, selected, viewport, onSelect, onViewportCh
         <MapFocus selected={selected} />
         <ClusterLayer markers={markers} onSelect={onSelect} />
       </MapContainer>
+
+
+      {markers.length === 0 && (
+        <div className="absolute inset-0 z-[510] flex items-center justify-center bg-slate-950/70 p-4 text-center text-sm text-silver-300 backdrop-blur-sm">
+          No hay nodos para este filtro. Cambia el criterio o vuelve a “Todo” para recuperar la visualización.
+        </div>
+      )}
 
       <div className="absolute left-3 top-3 z-[500] flex gap-2">
         <button
