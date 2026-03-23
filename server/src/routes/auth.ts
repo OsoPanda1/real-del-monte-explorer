@@ -6,6 +6,11 @@ import crypto from 'crypto';
 import prisma from '../lib/prisma';
 import { requireAuth, optionalAuth, AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
+import {
+  buildPasswordResetEmail,
+  buildVerificationEmail,
+  sendTransactionalEmail,
+} from '../lib/notifications';
 
 const router = Router();
 
@@ -364,12 +369,17 @@ router.post('/forgot-password', async (req: Request, res: Response, next) => {
         }
       });
       
-      // TODO: Send email with reset link
-      // In production, integrate with email provider (SendGrid, etc.)
       const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/reset-password?token=${resetToken}`;
-      console.log(`Password reset URL for ${user.email}: ${resetUrl}`);
-      
-      // In production: await sendPasswordResetEmail(user.email, resetUrl);
+      const resetEmail = buildPasswordResetEmail(resetUrl);
+      const emailResult = await sendTransactionalEmail({
+        to: user.email,
+        subject: resetEmail.subject,
+        html: resetEmail.html,
+      });
+
+      if (!emailResult.delivered) {
+        console.warn(`[AUTH] Reset email fallback for ${user.email}: ${emailResult.message}`);
+      }
     }
     
     res.json({
@@ -503,9 +513,17 @@ router.post('/resend-verification', requireAuth, async (req: AuthRequest, res: R
       }
     });
     
-    // TODO: Send verification email
     const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify?token=${verificationToken}`;
-    console.log(`Email verification URL for ${user.email}: ${verificationUrl}`);
+    const verificationEmail = buildVerificationEmail(verificationUrl);
+    const emailResult = await sendTransactionalEmail({
+      to: user.email,
+      subject: verificationEmail.subject,
+      html: verificationEmail.html,
+    });
+
+    if (!emailResult.delivered) {
+      console.warn(`[AUTH] Verification email fallback for ${user.email}: ${emailResult.message}`);
+    }
     
     res.json({
       success: true,
