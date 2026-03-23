@@ -1,8 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import logoRdm from "@/assets/logo-rdm-digital.png";
-import introAudio from "@/assets/intro_off.mp3";
-import introVideo from "@/assets/RDM Digital_Call To Action_2_2026-03-03 05_52_52.mp4";
 
 interface CinematicIntroProps {
   onComplete: () => void;
@@ -194,19 +191,19 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
     try {
       const ctx = new AudioContext();
       audioCtxRef.current = ctx;
-      const audio = new Audio(introAudio);
+      const audio = new Audio("/audio/isabella-intro.mp3");
       audio.crossOrigin = "anonymous";
       audioRef.current = audio;
 
       const source = ctx.createMediaElementSource(audio);
 
-      // ── Analyser for visualizer ──
+      // Analyser for visualizer
       const anal = ctx.createAnalyser();
       anal.fftSize = 256;
       anal.smoothingTimeConstant = 0.8;
       setAnalyser(anal);
 
-      // ── FX chain ──
+      // FX chain
       const delay = ctx.createDelay(1.0);
       delay.delayTime.value = 0.4;
       const feedback = ctx.createGain();
@@ -230,7 +227,7 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
       compressor.threshold.value = -24;
       compressor.ratio.value = 4;
 
-      // Dry path → analyser → destination
+      // Dry path -> analyser -> destination
       source.connect(bass).connect(high).connect(dry).connect(compressor);
       compressor.connect(anal);
       anal.connect(ctx.destination);
@@ -251,9 +248,9 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
           audio.volume = vol;
           if (vol >= 1) clearInterval(fadeIn);
         }, 80);
-      });
+      }).catch(console.warn);
 
-      // Fade out
+      // Fade out near end
       setTimeout(() => {
         if (audioRef.current) {
           let vol = audioRef.current.volume;
@@ -266,7 +263,7 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
             }
           }, 60);
         }
-      }, 6000);
+      }, 8000);
     } catch (e) {
       console.warn("Audio init failed:", e);
     }
@@ -276,15 +273,15 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
     if (!started) return;
     const timers = [
       setTimeout(() => setPhase(1), 400),
-      setTimeout(() => setPhase(2), 2000),
-      setTimeout(() => setPhase(3), 3800),
-      setTimeout(() => setPhase(4), 5600),
-      setTimeout(() => setPhase(5), 6800),
+      setTimeout(() => setPhase(2), 2200),
+      setTimeout(() => setPhase(3), 4500),
+      setTimeout(() => setPhase(4), 6800),
+      setTimeout(() => setPhase(5), 8500),
       setTimeout(() => {
         audioRef.current?.pause();
         audioCtxRef.current?.close().catch(() => {});
         onComplete();
-      }, 7600),
+      }, 9500),
     ];
     return () => timers.forEach(clearTimeout);
   }, [started, onComplete]);
@@ -309,16 +306,21 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
           }}
           onClick={!started ? startIntro : undefined}
         >
-          {/* ── Click to start ── */}
+          {/* Click to start */}
           {!started && (
             <motion.div
               className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6"
               animate={{ opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             >
-              <img src={logoRdm} alt="RDM Digital" className="w-24 h-24 md:w-32 md:h-32 object-contain opacity-60" />
+              <img 
+                src="/images/rdm-hero.png" 
+                alt="RDM Digital" 
+                className="w-32 h-32 md:w-48 md:h-48 object-contain rounded-full opacity-80"
+                style={{ filter: "drop-shadow(0 0 30px hsla(210,100%,60%,0.5))" }}
+              />
               <p className="text-xs md:text-sm tracking-[0.35em] uppercase" style={{ color: "hsl(210 60% 65%)" }}>
-                Toca para iniciar
+                Toca para iniciar la experiencia
               </p>
               <motion.div
                 className="w-16 h-16 rounded-full border-2 flex items-center justify-center"
@@ -334,15 +336,21 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
 
           {started && (
             <>
-              {/* Background Video */}
-              <video
-                src={introVideo}
-                autoPlay
-                muted
-                playsInline
-                className="absolute inset-0 w-full h-full object-cover opacity-30 z-0"
-                style={{ filter: "saturate(0.6) contrast(1.2)" }}
-              />
+              {/* Background Hero Image */}
+              <motion.div
+                className="absolute inset-0 z-0"
+                initial={{ opacity: 0, scale: 1.1 }}
+                animate={{ opacity: 0.4, scale: 1 }}
+                transition={{ duration: 2 }}
+              >
+                <img
+                  src="/images/rdm-hero.png"
+                  alt=""
+                  className="w-full h-full object-cover"
+                  style={{ filter: "saturate(0.7) contrast(1.1) brightness(0.6)" }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[hsl(220,25%,4%)] via-transparent to-[hsl(220,25%,4%)]" />
+              </motion.div>
 
               {/* Particles */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -405,7 +413,7 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
               {/* Scan lines */}
               <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{ backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 2px,hsla(0,0%,100%,0.04) 2px,hsla(0,0%,100%,0.04) 4px)" }} />
 
-              {/* Logo */}
+              {/* Logo Badge */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.4, filter: "blur(40px)" }}
                 animate={phase >= 1 ? { opacity: 1, scale: 1, filter: "blur(0px)" } : {}}
@@ -418,8 +426,40 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
                   animate={phase >= 1 ? { opacity: [0.3, 0.7, 0.3] } : {}}
                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 />
-                <img src={logoRdm} alt="RDM Digital" className="relative w-36 h-36 md:w-52 md:h-52 object-contain"
-                  style={{ filter: "drop-shadow(0 0 40px hsla(210,100%,60%,0.5))" }} />
+                <div 
+                  className="relative w-36 h-36 md:w-52 md:h-52 rounded-full flex items-center justify-center"
+                  style={{ 
+                    background: "linear-gradient(135deg, hsla(220,30%,15%,0.9), hsla(220,40%,8%,0.95))",
+                    border: "2px solid hsla(43,80%,55%,0.4)",
+                    boxShadow: "0 0 60px hsla(210,100%,60%,0.3), inset 0 0 30px hsla(210,100%,60%,0.1)"
+                  }}
+                >
+                  <div className="text-center">
+                    <p className="text-[10px] md:text-xs tracking-[0.3em] uppercase" style={{ color: "hsl(210 70% 70%)" }}>
+                      RDM DIGITAL
+                    </p>
+                    <h2 
+                      className="font-serif text-lg md:text-2xl font-bold mt-1"
+                      style={{
+                        background: "linear-gradient(135deg, hsl(43 80% 70%), hsl(43 60% 55%))",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}
+                    >
+                      REAL DEL
+                    </h2>
+                    <h2 
+                      className="font-serif text-lg md:text-2xl font-bold"
+                      style={{
+                        background: "linear-gradient(135deg, hsl(43 80% 70%), hsl(43 60% 55%))",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}
+                    >
+                      MONTE
+                    </h2>
+                  </div>
+                </div>
               </motion.div>
 
               {/* Era badge */}
@@ -438,7 +478,7 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
                     boxShadow: "0 0 30px hsla(210,100%,60%,0.15)",
                   }}
                 >
-                  2026 · Nueva Era Digital
+                  2026 - Nueva Era Digital
                 </span>
               </motion.div>
 
@@ -473,11 +513,11 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
                   animate={phase >= 2 ? { opacity: 1 } : {}}
                   transition={{ delay: 0.6, duration: 0.8 }}
                 >
-                  Inicia su Digitalización
+                  Pueblo Magico de Hidalgo
                 </motion.p>
               </motion.div>
 
-              {/* ── Audio Equalizer & Waveform Visualizer ── */}
+              {/* Audio Equalizer & Waveform Visualizer */}
               <motion.div
                 initial={{ opacity: 0, scaleY: 0.3 }}
                 animate={phase >= 2 ? { opacity: 1, scaleY: 1 } : {}}
@@ -494,11 +534,11 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
                   className="text-[9px] tracking-[0.35em] uppercase mt-2"
                   style={{ color: "hsl(210 40% 55%)" }}
                 >
-                  ▶ Reproduciendo
+                  Isabella - Tu Guia Digital
                 </motion.p>
               </motion.div>
 
-              {/* Tagline */}
+              {/* Tagline - Isabella's voice */}
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={phase >= 3 ? { opacity: 1, y: 0 } : {}}
@@ -513,57 +553,67 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
                 </p>
               </motion.div>
 
+              {/* Feature images carousel */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={phase >= 4 ? { opacity: 1 } : {}}
+                transition={{ duration: 1 }}
+                className="absolute bottom-28 z-10 flex gap-4 justify-center"
+              >
+                {[
+                  { src: "/images/realito-pasterias.png", label: "Gastronomia" },
+                  { src: "/images/realito-platerias.png", label: "Artesanias" },
+                  { src: "/images/realito-sanitarios.png", label: "Servicios" },
+                ].map((item, i) => (
+                  <motion.div
+                    key={item.label}
+                    initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                    animate={phase >= 4 ? { opacity: 1, y: 0, scale: 1 } : {}}
+                    transition={{ duration: 0.6, delay: i * 0.15 }}
+                    className="relative group"
+                  >
+                    <div 
+                      className="w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden"
+                      style={{
+                        border: "1px solid hsla(210,100%,70%,0.3)",
+                        boxShadow: "0 0 20px hsla(210,100%,60%,0.2)"
+                      }}
+                    >
+                      <img src={item.src} alt={item.label} className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-[8px] md:text-[9px] text-center mt-1 tracking-wider uppercase" style={{ color: "hsl(210 50% 60%)" }}>
+                      {item.label}
+                    </p>
+                  </motion.div>
+                ))}
+              </motion.div>
+
               {/* Bottom tagline */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={phase >= 3 ? { opacity: 1 } : {}}
                 transition={{ duration: 0.8, delay: 0.5 }}
-                className="absolute bottom-20 z-10 text-center"
+                className="absolute bottom-16 z-10 text-center"
               >
                 <p className="text-[10px] md:text-xs tracking-[0.4em] uppercase" style={{ color: "hsl(210 40% 50%)" }}>
-                  Innovación Turística Inteligente
+                  Innovacion Turistica Inteligente
                 </p>
               </motion.div>
 
-              {/* Progress bar */}
-              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2">
-                <motion.div
-                  className="h-[3px] rounded-full overflow-hidden"
-                  style={{ width: "160px", background: "hsla(210,50%,25%,0.3)" }}
-                >
-                  <motion.div
-                    initial={{ width: "0%" }}
-                    animate={{ width: "100%" }}
-                    transition={{ duration: 6.8, ease: "easeInOut" }}
-                    className="h-full rounded-full"
-                    style={{
-                      background: "linear-gradient(90deg,hsl(210 80% 60%),hsl(43 70% 55%),hsl(280 50% 60%),hsl(210 80% 60%))",
-                      boxShadow: "0 0 25px hsla(210,100%,60%,0.7)",
-                    }}
-                  />
-                </motion.div>
-              </div>
-
-              {/* Skip button (mouse + Esc hint) */}
+              {/* Skip button */}
               <motion.button
                 initial={{ opacity: 0 }}
-                animate={phase >= 2 ? { opacity: 0.45 } : {}}
+                animate={phase >= 1 ? { opacity: 0.6 } : {}}
                 whileHover={{ opacity: 1, scale: 1.05 }}
-                transition={{ duration: 0.5 }}
-                onClick={(e) => { e.stopPropagation(); handleSkip(); }}
-                className="absolute top-5 right-5 z-50 flex items-center gap-2 text-[10px] tracking-[0.2em] uppercase px-4 py-2 rounded-full"
+                onClick={handleSkip}
+                className="absolute bottom-6 right-6 z-50 px-4 py-2 rounded-full text-[10px] tracking-widest uppercase transition-all"
                 style={{
-                  color: "hsl(210 30% 60%)",
-                  border: "1px solid hsla(210,50%,50%,0.2)",
-                  background: "hsla(210,30%,10%,0.4)",
-                  backdropFilter: "blur(8px)",
+                  background: "hsla(0,0%,100%,0.05)",
+                  border: "1px solid hsla(0,0%,100%,0.15)",
+                  color: "hsl(0 0% 60%)",
                 }}
               >
-                <span className="hidden md:inline px-1.5 py-0.5 rounded text-[9px]"
-                  style={{ border: "1px solid hsla(210,50%,50%,0.25)", background: "hsla(210,30%,15%,0.5)" }}>
-                  ESC
-                </span>
-                Saltar
+                Saltar (Esc)
               </motion.button>
             </>
           )}

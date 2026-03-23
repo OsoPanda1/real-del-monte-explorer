@@ -2,8 +2,10 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { ChevronDown, MapPin, Compass, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import heroImg from "@/assets/hero-real-del-monte.webp";
 import { AuroraBackground } from "@/components/VisualEffects";
+
+// Use public image path
+const heroImg = "/images/rdm-hero.png";
 
 export default function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
