@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L, { type LeafletEventHandlerFnMap, type Map as LeafletMap } from "leaflet";
 import Supercluster from "supercluster";
+import { Compass, Layers3, LocateFixed, RotateCcw, Sparkles } from "lucide-react";
 import "leaflet/dist/leaflet.css";
-import type { MapMarkerData, MapViewportState } from "@/features/places/mapTypes";
+import { DEFAULT_MAP_VIEWPORT, type MapMarkerData, type MapViewportState } from "@/features/places/mapTypes";
 
 // Definición estricta de tipos para evitar errores de propiedades inexistentes
 type ClusterProps = { cluster: true; cluster_id: number; point_count: number };
@@ -74,6 +75,21 @@ function MapFocus({ selected }: { selected: MapMarkerData | null }) {
     if (!selected) return;
     map.flyTo([selected.lat, selected.lng], Math.max(map.getZoom(), 15), { duration: 0.75 });
   }, [map, selected]);
+
+  return null;
+}
+
+function MapViewportSync({ viewport }: { viewport: MapViewportState }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const center = map.getCenter();
+    const latDiff = Math.abs(center.lat - viewport.lat);
+    const lngDiff = Math.abs(center.lng - viewport.lng);
+    const zoomDiff = Math.abs(map.getZoom() - viewport.zoom);
+    if (latDiff < 0.0001 && lngDiff < 0.0001 && zoomDiff < 0.01) return;
+    map.flyTo([viewport.lat, viewport.lng], viewport.zoom, { duration: 0.6 });
+  }, [map, viewport.lat, viewport.lng, viewport.zoom]);
 
   return null;
 }
@@ -171,6 +187,18 @@ function ClusterLayer({ markers, onSelect }: { markers: MapMarkerData[]; onSelec
 }
 
 export function Map2DPanel({ markers, selected, viewport, onSelect, onViewportChange }: Map2DPanelProps) {
+  const [tileMode, setTileMode] = useState<"dark" | "light">("dark");
+  const tileConfig =
+    tileMode === "dark"
+      ? {
+          url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+          attribution: "&copy; CARTO",
+        }
+      : {
+          url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          attribution: "&copy; OpenStreetMap contributors",
+        };
+
   return (
     <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
       <MapContainer
@@ -180,15 +208,59 @@ export function Map2DPanel({ markers, selected, viewport, onSelect, onViewportCh
         zoomControl={true}
         scrollWheelZoom={true}
       >
-        <TileLayer
-          attribution='&copy; CARTO'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        />
+        <TileLayer attribution={tileConfig.attribution} url={tileConfig.url} />
         <MapEventBridge onViewportChange={onViewportChange} />
+        <MapViewportSync viewport={viewport} />
         <MapFocus selected={selected} />
         <ClusterLayer markers={markers} onSelect={onSelect} />
       </MapContainer>
-      
+
+      <div className="absolute left-3 top-3 z-[500] flex gap-2">
+        <button
+          onClick={() => setTileMode((prev) => (prev === "dark" ? "light" : "dark"))}
+          className="inline-flex items-center gap-1 rounded-lg border border-white/20 bg-slate-900/80 px-2.5 py-1.5 text-[11px] text-white backdrop-blur-md transition hover:bg-slate-800/90"
+        >
+          <Layers3 className="h-3.5 w-3.5" />
+          {tileMode === "dark" ? "Claro" : "Oscuro"}
+        </button>
+        <button
+          onClick={() => onViewportChange(DEFAULT_MAP_VIEWPORT)}
+          className="inline-flex items-center gap-1 rounded-lg border border-white/20 bg-slate-900/80 px-2.5 py-1.5 text-[11px] text-white backdrop-blur-md transition hover:bg-slate-800/90"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          Recentrar
+        </button>
+      </div>
+
+      <div className="absolute bottom-3 left-3 z-[500] rounded-xl border border-white/20 bg-slate-900/75 px-3 py-2 text-[11px] text-white backdrop-blur-md">
+        <div className="mb-1 flex items-center gap-2 text-white/70">
+          <Sparkles className="h-3 w-3 text-blue-300" />
+          Leyenda interactiva
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-blue-400" /> Lugares
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" /> Negocios
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-slate-200" /> Premium
+          </span>
+        </div>
+      </div>
+
+      <div className="absolute bottom-3 right-3 z-[500] rounded-xl border border-white/20 bg-slate-900/75 px-3 py-2 text-[11px] text-white/80 backdrop-blur-md">
+        <div className="flex items-center gap-1.5">
+          <LocateFixed className="h-3.5 w-3.5 text-cyan-300" />
+          {viewport.lat.toFixed(4)}, {viewport.lng.toFixed(4)}
+        </div>
+        <div className="mt-1 flex items-center gap-1.5">
+          <Compass className="h-3.5 w-3.5 text-amber-300" />
+          Zoom {viewport.zoom.toFixed(1)}
+        </div>
+      </div>
+
       {/* Overlay de diseño Crystal Glow en los bordes */}
       <div className="pointer-events-none absolute inset-0 rounded-2xl border border-white/5 ring-1 ring-inset ring-white/10" />
     </div>

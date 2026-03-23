@@ -175,13 +175,21 @@ function MapaPageContent() {
                     />
                   </div>
                   <button
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-silver-300"
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                      filter === "place"
+                        ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                        : "border-white/10 bg-white/5 text-silver-300 hover:border-white/20"
+                    }`}
                     onClick={() => handleFilterChange("place")}
                   >
                     <Filter className="h-4 w-4" /> Lugares
                   </button>
                   <button
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-silver-300"
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                      filter === "business"
+                        ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                        : "border-white/10 bg-white/5 text-silver-300 hover:border-white/20"
+                    }`}
                     onClick={() => handleFilterChange("business")}
                   >
                     <Layers className="h-4 w-4" /> Negocios
