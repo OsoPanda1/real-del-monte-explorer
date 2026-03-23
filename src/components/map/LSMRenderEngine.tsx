@@ -1,8 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import DeckGL from '@deck.gl/react';
-import { HeatmapLayer, ScatterplotLayer } from '@deck.gl/layers';
-import { Map } from 'react-map-gl';
-import 'mapbox-gl/dist/mapbox-gl.css'; // Vital para evitar fallos de renderizado
 import { useWebSocketSubscription } from '../../hooks/useWebSocket';
 
 interface LSMRenderProps {
@@ -27,85 +23,70 @@ interface LSMNodeEvent {
   };
 }
 
-export const LSMRenderEngine = ({ capaActiva, initialViewState }: LSMRenderProps) => {
+const MAP_BOUNDS = {
+  minLat: 20.12,
+  maxLat: 20.16,
+  minLng: -98.69,
+  maxLng: -98.65,
+};
+
+const projectPoint = (lat: number, lng: number) => {
+  const x = ((lng - MAP_BOUNDS.minLng) / (MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng)) * 100;
+  const y = 100 - ((lat - MAP_BOUNDS.minLat) / (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat)) * 100;
+  return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
+};
+
+export const LSMRenderEngine = ({ capaActiva }: LSMRenderProps) => {
   const [nodosLSM, setNodosLSM] = useState<LSMNodeEvent['data'][]>([]);
-  // Asegúrate de que el hook useWebSocketSubscription esté tipado correctamente
   const lastEvent = useWebSocketSubscription<LSMNodeEvent>('LSM_REALTIME_STREAM');
 
-  // Sincronización de Nodos con limpieza de memoria (máximo 500 nodos para performance)
   useEffect(() => {
     if (lastEvent && lastEvent.capa === capaActiva) {
       setNodosLSM((prev) => {
         const filtrados = prev.filter((n) => n.id !== lastEvent.data.id);
         const nuevos = [...filtrados, lastEvent.data];
-        return nuevos.slice(-500); // Mantenemos el engine ligero
+        return nuevos.slice(-500);
       });
     }
   }, [lastEvent, capaActiva]);
 
-  const layers = useMemo(() => {
-    return [
-      // Capa de Calor: Movilidad y Flujo Humano
-      new HeatmapLayer({
-        id: 'lsm-saturacion-heatmap',
-        data: capaActiva === 'movilidad' ? nodosLSM : [],
-        getPosition: (d: any) => [d.lng, d.lat],
-        getWeight: (d: any) => d.intensidadSaturacion ?? 0,
-        radiusPixels: 40,
-        intensity: 1,
-        threshold: 0.05,
-        // Estética: Gradiente de Obsidian Mist a Crystal Glow
-        colorRange: [
-          [10, 15, 27],   // Fondo oscuro
-          [46, 67, 106],  // Azul TAMV
-          [96, 165, 250], // Sky Glow
-          [229, 231, 235] // Platinum Peak
-        ]
-      }),
-      // Capa de Nodos: Economía y Platería
-      new ScatterplotLayer({
-        id: 'lsm-nodos-activos',
-        data: (capaActiva === 'economia' || capaActiva === 'plateria') ? nodosLSM : [],
-        getPosition: (d: any) => [d.lng, d.lat],
-        // Cambio de dorado ostentoso a Platinum/Silver con destellos
-        getFillColor: (d: any) => 
-          d.ofertaActiva ? [229, 231, 235, 230] : [75, 85, 99, 150], 
-        getLineColor: [255, 255, 255, 100],
-        stroked: true,
-        lineWidthMinPixels: 1,
-        getRadius: (d: any) => (d.ofertaActiva ? 25 : 12),
-        radiusMinPixels: 4,
-        pickable: true,
-        onClick: (info) => {
-          if (info.object) {
-             console.log('Nodo LSM Identificado:', info.object.id);
-          }
-        },
-      }),
-    ];
+  const nodosVisuales = useMemo(() => {
+    return nodosLSM.map((nodo) => {
+      const point = projectPoint(nodo.lat, nodo.lng);
+      const saturacion = nodo.intensidadSaturacion ?? 0;
+      const scale = capaActiva === 'movilidad' ? 0.6 + saturacion : nodo.ofertaActiva ? 1.1 : 0.8;
+      return { ...nodo, ...point, scale };
+    });
   }, [nodosLSM, capaActiva]);
 
   return (
-    <div className="relative h-full w-full rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/5">
-      <DeckGL 
-        initialViewState={initialViewState} 
-        controller={true} 
-        layers={layers}
-        getCursor={() => 'crosshair'}
-      >
-        <Map
-          mapStyle="mapbox://styles/mapbox/dark-v11"
-          mapboxAccessToken={import.meta.env.VITE_MAPBOX_TOKEN}
-          reuseMaps
+    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-white/5 bg-[#060b16] shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(96,165,250,0.25),transparent_50%),radial-gradient(circle_at_75%_70%,rgba(16,185,129,0.2),transparent_48%),linear-gradient(180deg,#020617,#0f172a)]" />
+
+      {nodosVisuales.map((nodo) => (
+        <div
+          key={nodo.id}
+          className="absolute rounded-full border border-white/20"
+          style={{
+            left: `${nodo.x}%`,
+            top: `${nodo.y}%`,
+            width: `${16 * nodo.scale}px`,
+            height: `${16 * nodo.scale}px`,
+            transform: 'translate(-50%, -50%)',
+            background: nodo.ofertaActiva ? 'rgba(229,231,235,0.9)' : 'rgba(96,165,250,0.75)',
+            boxShadow: nodo.ofertaActiva
+              ? '0 0 0 4px rgba(229,231,235,0.18), 0 0 22px rgba(229,231,235,0.65)'
+              : '0 0 0 4px rgba(37,99,235,0.14), 0 0 18px rgba(59,130,246,0.6)',
+          }}
+          title={`${nodo.id} · capa ${capaActiva}`}
         />
-      </DeckGL>
-      
-      {/* Indicador de Capa Activa - Estética Glassmorphism */}
-      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md border border-white/10 p-3 rounded-lg pointer-events-none">
-        <span className="text-[10px] uppercase tracking-[2px] text-slate-400 block mb-1">Estatus LSM</span>
+      ))}
+
+      <div className="pointer-events-none absolute right-4 top-4 rounded-lg border border-white/10 bg-black/60 p-3 backdrop-blur-md">
+        <span className="mb-1 block text-[10px] uppercase tracking-[2px] text-slate-400">Estatus LSM</span>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-          <span className="text-xs font-bold text-slate-200 capitalize">{capaActiva}</span>
+          <div className="h-2 w-2 animate-pulse rounded-full bg-blue-400" />
+          <span className="text-xs font-bold capitalize text-slate-200">{capaActiva}</span>
         </div>
       </div>
     </div>
