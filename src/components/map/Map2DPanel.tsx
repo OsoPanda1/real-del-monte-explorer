@@ -207,6 +207,7 @@ export function Map2DPanel({ markers, selected, viewport, onSelect, onViewportCh
         className="h-[420px] w-full md:h-[640px]"
         zoomControl={true}
         scrollWheelZoom={true}
+        preferCanvas
       >
         <TileLayer attribution={tileConfig.attribution} url={tileConfig.url} />
         <MapEventBridge onViewportChange={onViewportChange} />
@@ -214,6 +215,13 @@ export function Map2DPanel({ markers, selected, viewport, onSelect, onViewportCh
         <MapFocus selected={selected} />
         <ClusterLayer markers={markers} onSelect={onSelect} />
       </MapContainer>
+
+
+      {markers.length === 0 && (
+        <div className="absolute inset-0 z-[510] flex items-center justify-center bg-slate-950/70 p-4 text-center text-sm text-silver-300 backdrop-blur-sm">
+          No hay nodos para este filtro. Cambia el criterio o vuelve a “Todo” para recuperar la visualización.
+        </div>
+      )}
 
       <div className="absolute left-3 top-3 z-[500] flex gap-2">
         <button
