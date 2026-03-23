@@ -7,6 +7,7 @@ import { AnimatePresence } from "framer-motion";
 import { NotificationProvider } from "@/components/NotificationSystem";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import CinematicIntro from "@/components/CinematicIntro";
+import MicroPageIntro from "@/components/MicroPageIntro";
 import RealitoChatLauncher from "./components/RealitoChatLauncher";
 
 const Index = lazy(() => import("./pages/Index"));
@@ -92,7 +93,10 @@ const AppInner = () => {
             <CinematicIntro onComplete={handleIntroComplete} />
           )}
           {(!showIntro || introComplete) && (
-            <AnimatedRoutes />
+            <>
+              <MicroPageIntro />
+              <AnimatedRoutes />
+            </>
           )}
           <RealitoChatLauncher />
         </TooltipProvider>

@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:go-green": "npm run test && npm run build"
   },
   "dependencies": {
     "@google/genai": "^1.45.0",
