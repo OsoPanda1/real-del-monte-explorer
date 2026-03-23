@@ -23,3 +23,12 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## Análisis de ecosistema GitHub
+
+Se agregó un módulo backend para analizar repos de un perfil y generar un reporte de brechas funcionales:
+
+- `GET /api/v1/ecosystem/repos?profile=OsoPanda1`
+- `GET /api/v1/ecosystem/gap-report?profile=OsoPanda1`
+
+Esto permite priorizar implementaciones en RDM basadas en señales de repositorios relacionados del ecosistema TAMV.
