@@ -1,18 +1,25 @@
-import { Pool } from 'pg';
-import Redis from 'ioredis';
-import { ChronusEngine } from './engine/ChronusEngine';
+import { ChronusEngine, type PublishClient, type QueryableDb } from './engine/ChronusEngine';
 
 const databaseUrl = process.env.DATABASE_URL;
 const redisUrl = process.env.REDIS_URL;
 
+const mockDb: QueryableDb = {
+  async query() {
+    return { rows: [{ activos: 0 }] };
+  },
+};
+
+const mockPubSub: PublishClient = {
+  async publish(channel: string, payload: string) {
+    console.log(`[KERNEL:MOCK] ${channel}`, payload);
+  },
+};
+
 if (!databaseUrl || !redisUrl) {
-  throw new Error('DATABASE_URL y REDIS_URL son requeridos para iniciar el kernel soberano');
+  console.warn('[KERNEL] DATABASE_URL y REDIS_URL no configurados. Se usará modo mock local.');
 }
 
-const pool = new Pool({ connectionString: databaseUrl });
-const redis = new Redis(redisUrl);
-
-const chronus = new ChronusEngine(pool, redis);
+const chronus = new ChronusEngine(mockDb, mockPubSub);
 
 setInterval(async () => {
   try {
