@@ -14,21 +14,21 @@ export default function HeroSection() {
     offset: ["start start", "end start"],
   });
 
-  const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
-  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+  const backgroundY = useTransform(scrollYProgress, [0, 1], ["10%", "30%"]);
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "70%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   return (
-    <section ref={containerRef} className="relative min-h-screen overflow-hidden bg-night-900 text-silver-300">
+    <section ref={containerRef} className="relative min-h-screen overflow-hidden bg-night-900 text-dark-silver-300">
       {/* Parallax Background */}
       <motion.div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${heroImg})`, y: backgroundY, scale: 1.1, opacity: 0.4 }}
+        style={{ backgroundImage: `url(${heroImg})`, y: backgroundY, scale: 1.1, opacity: 0.9 }}
       />
 
       {/* Gradient Overlays */}
       <div className="absolute inset-0 bg-gradient-to-b from-night-900/80 via-night-900/60 to-night-900" />
-      <div className="absolute inset-0 bg-gradient-to-r from-night-900/40 via-transparent to-night-900/40" />
+      <div className="absolute inset-0 bg-gradient-to-r from-night-900/40 via-transparent to-night-900/60" />
 
       {/* Aurora Ambient */}
       <AuroraBackground />
@@ -42,22 +42,22 @@ export default function HeroSection() {
         className="relative mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-6 text-center"
       >
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          transition={{ duration: 1.8, delay: 0.5 }}
           className="space-y-8"
         >
           {/* Top Badge */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            animate={{ opacity: 2, scale: 1 }}
+            transition={{ duration: 1.6, delay: 0.8 }}
             className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-xs uppercase tracking-[0.25em] backdrop-blur-sm"
           >
             <MapPin className="h-3.5 w-3.5 text-gold-400" />
             <span>Real del Monte</span>
             <span className="mx-1 h-3 w-px bg-white/20" />
-            <span className="text-gold-400">Pueblo Magico</span>
+            <span className="text-black-400">Pueblo Magico</span>
             <span className="mx-1 h-3 w-px bg-white/20" />
             <span>Hidalgo</span>
           </motion.div>
