@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { buildEcosystemGaps, fetchEcosystemRepos } from '../lib/ecosystemAnalyzer';
+import { buildConsolidationPlan, buildEcosystemGaps, fetchEcosystemRepos } from '../lib/ecosystemAnalyzer';
 import { AppError } from '../middleware/errorHandler';
 
 const router = Router();
@@ -64,6 +64,30 @@ router.get('/gap-report', async (req, res, next) => {
         },
         gaps,
       },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return next(new AppError(error.errors[0].message, 400));
+    }
+    next(error);
+  }
+});
+
+
+router.get('/consolidation-plan', async (req, res, next) => {
+  try {
+    const { profile, includeForks, includeArchived } = ecosystemQuerySchema.parse(req.query);
+    const targetRepo = typeof req.query.targetRepo === 'string' && req.query.targetRepo.trim()
+      ? req.query.targetRepo.trim()
+      : 'tamv-digital-nexus';
+
+    const repos = await fetchEcosystemRepos(profile);
+    const filtered = filterRepos(repos, includeForks, includeArchived);
+    const plan = buildConsolidationPlan(filtered, profile, targetRepo);
+
+    res.json({
+      success: true,
+      data: plan,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
