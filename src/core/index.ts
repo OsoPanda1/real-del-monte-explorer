@@ -94,3 +94,33 @@ export {
 } from './orchestrator/ExperienceOrchestrator';
 
 export type { Clock } from './orchestrator/ExperienceOrchestrator';
+
+
+// ============================================================================
+// FEDERATED LEARNING ORCHESTRATION
+// ============================================================================
+
+export {
+  runFederatedAveraging,
+} from './federated/FederatedLearningOrchestrator';
+
+export type {
+  FederatedClientUpdate,
+  FederatedRoundInput,
+  FederatedRoundOutput,
+} from './federated/FederatedLearningOrchestrator';
+
+// ============================================================================
+// RENDER BACKEND PROFILES
+// ============================================================================
+
+export {
+  selectRenderBackend,
+  estimateGpuTier,
+} from './render/renderBackends';
+
+export type {
+  RenderBackendId,
+  RenderBackendProfile,
+  RenderRuntimeCaps,
+} from './render/renderBackends';

@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls, Stars } from "@react-three/drei";
 import * as THREE from "three";
 import type { MapMarkerData, MapViewportState } from "@/features/places/mapTypes";
+import { estimateGpuTier, selectRenderBackend } from "@/core/render/renderBackends";
 
 const GEO_LNG_OFFSET = 98.6732;
 const GEO_LAT_OFFSET = 20.1374;
@@ -146,11 +147,24 @@ function Atmosphere() {
 
 export function Map3DTwin({ viewport, markers, onViewportChange }: Map3DTwinProps) {
   const [webglReady, setWebglReady] = useState(false);
+  const [supportsWorkers, setSupportsWorkers] = useState(false);
 
   useEffect(() => {
     onViewportChange({ pitch: 55 });
     setWebglReady(isWebGLAvailable());
+    setSupportsWorkers(typeof window !== "undefined" && typeof window.Worker !== "undefined");
   }, [onViewportChange]);
+
+  const renderProfile = useMemo(() => {
+    const deviceMemory = typeof navigator !== "undefined" ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory : undefined;
+
+    return selectRenderBackend({
+      webgl: webglReady,
+      workerThreads: supportsWorkers,
+      ssrPrerender: typeof navigator !== "undefined" && /googlebot|bingbot|rendertron/i.test(navigator.userAgent),
+      gpuTier: estimateGpuTier(deviceMemory),
+    });
+  }, [supportsWorkers, webglReady]);
 
   if (!webglReady) {
     return (
@@ -159,6 +173,7 @@ export function Map3DTwin({ viewport, markers, onViewportChange }: Map3DTwinProp
           <p className="text-xs uppercase tracking-[0.2em] text-silver-500">Modo híbrido degradado</p>
           <h3 className="mt-2 text-xl font-semibold text-silver-100">Visualización 3D no disponible en este entorno</h3>
           <p className="mt-2 max-w-2xl text-sm text-silver-400">Se mantiene un mapa de nodos para Lovable/WebView y equipos sin WebGL habilitado.</p>
+          <p className="mt-2 text-xs text-silver-500">Perfil activo: {renderProfile.label}</p>
         </div>
         <div className="grid gap-2 md:grid-cols-2">
           {markers.slice(0, 6).map((marker) => (
@@ -194,6 +209,7 @@ export function Map3DTwin({ viewport, markers, onViewportChange }: Map3DTwinProp
       </Canvas>
       <div className="absolute bottom-3 left-3 z-20 rounded-lg border border-white/15 bg-night-900/75 px-3 py-2 text-xs text-silver-300 backdrop-blur-sm">
         Gemelo Digital sincronizado · {viewport.lat.toFixed(4)}, {viewport.lng.toFixed(4)}
+        <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-silver-500">{renderProfile.label}</div>
       </div>
     </div>
   );
