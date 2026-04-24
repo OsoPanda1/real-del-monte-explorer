@@ -16,38 +16,17 @@ interface CheckInPayload {
   noches: number;
 }
 
-type MessageHandler = (channel: string, message: string) => void;
-
-interface PubSubClient {
-  subscribe: (...channels: string[]) => Promise<void>;
-  onMessage: (handler: MessageHandler) => void;
-  publish: (channel: string, payload: string) => Promise<void>;
-}
-
-class InMemoryPubSubClient implements PubSubClient {
-  private handlers: MessageHandler[] = [];
-
-  async subscribe(..._channels: string[]): Promise<void> {
-    return;
-  }
-
-  onMessage(handler: MessageHandler) {
-    this.handlers.push(handler);
-  }
-
-  async publish(channel: string, payload: string): Promise<void> {
-    this.handlers.forEach((handler) => handler(channel, payload));
-  }
-}
-
 export class FederationBus {
-  private readonly subscriber: PubSubClient;
-  private readonly publisher: PubSubClient;
+  private readonly subscriber: Redis;
+  private readonly publisher: Redis;
 
-  constructor(pubSubClient?: PubSubClient) {
-    const client = pubSubClient ?? new InMemoryPubSubClient();
-    this.subscriber = client;
-    this.publisher = client;
+  constructor(redisUrl = process.env.REDIS_URL) {
+    if (!redisUrl) {
+      throw new Error('REDIS_URL no está configurada para FederationBus');
+    }
+
+    this.subscriber = new Redis(redisUrl);
+    this.publisher = new Redis(redisUrl);
     this.initListeners();
   }
 
@@ -107,9 +86,7 @@ export class FederationBus {
       JSON.stringify({
         turistaId: payload.turistaId,
         triggerType: 'BIENVENIDA_CON_OFERTA',
-        timestamp: new Date().toISOString(),
         ofertaData: oferta,
-        visualStyle: 'CRYSTAL_GLOW',
       }),
     );
   }

@@ -1,9 +1,10 @@
-export interface QueryableDb {
-  query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }>;
-}
+import type { Pool } from 'pg';
+import type Redis from 'ioredis';
 
-export interface PublishClient {
-  publish: (channel: string, payload: string) => Promise<void>;
+export interface SpatialPoint {
+  lat: number;
+  lng: number;
+  weight: number;
 }
 
 export interface ContextoCivilizatorio {
@@ -21,7 +22,13 @@ export class ChronusEngine {
     this.pubsub = redisClient;
   }
 
-  public async calcularSaturacionZonal(polygonId: string, contexto: ContextoCivilizatorio): Promise<number> {
+  /**
+   * Calcula la Presión Civilizatoria (Fuzzy Logic) y actualiza el estado de la Malla (LSM).
+   */
+  public async calcularSaturacionZonal(
+    polygonId: string,
+    contexto: ContextoCivilizatorio,
+  ): Promise<number> {
     const res = await this.db.query(
       `
       SELECT count(*) as activos
@@ -52,7 +59,9 @@ export class ChronusEngine {
   }
 
   private async activarProtocoloEscape(polygonId: string, presion: number): Promise<void> {
-    console.warn(`[CHRONUS] ALERTA: Saturación crítica (${(presion * 100).toFixed(1)}%) en Zona ${polygonId}`);
+    console.warn(
+      `[CHRONUS] ALERTA: Saturación crítica (${(presion * 100).toFixed(1)}%) en Zona ${polygonId}`,
+    );
 
     const payload = JSON.stringify({
       zona_saturada: polygonId,

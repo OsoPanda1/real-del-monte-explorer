@@ -3,6 +3,14 @@ import { ChronusEngine, type PublishClient, type QueryableDb } from './engine/Ch
 const databaseUrl = process.env.DATABASE_URL;
 const redisUrl = process.env.REDIS_URL;
 
+if (!databaseUrl || !redisUrl) {
+  throw new Error('DATABASE_URL y REDIS_URL son requeridos para iniciar el kernel soberano');
+}
+
+const pool = new Pool({ connectionString: databaseUrl });
+const redis = new Redis(redisUrl);
+
+const chronus = new ChronusEngine(pool, redis);
 const mockDb: QueryableDb = {
   async query() {
     return { rows: [{ activos: 0 }] };
