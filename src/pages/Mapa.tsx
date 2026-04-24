@@ -1,25 +1,17 @@
-import { useMemo, useState } from "react";
-import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import {
-  Award,
-  Compass,
-  Filter,
-  Layers,
-  LocateFixed,
-  MapPin,
-  Phone,
-  Radar,
-  Search,
-  Star,
-  Zap,
-} from "lucide-react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { lazy, Suspense, useMemo, useState } from "react";
+import { Award, Filter, Layers, LocateFixed, MapPin, Phone, Radar, Search, Star, Zap, Compass, Activity, Cpu, DatabaseZap, Workflow } from "lucide-react";
+import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
+import GradientSeparator from "@/components/GradientSeparator";
 import { PAGE_SEO, SEOMeta } from "@/components/SEOMeta";
+import { AuroraBackground } from "@/components/VisualEffects";
 import { Link } from "react-router-dom";
+import { Map2DPanel } from "@/components/map/Map2DPanel";
+import { MapSyncProvider, useMapSync } from "@/hooks/useMapSync";
+import type { MapMarkerData, MarkerType } from "@/features/places/mapTypes";
+import { buildRecommendedActions, buildTwinOverlaySummary, synthesizeTwinSignals } from "@/features/twins/hybridTwin";
 
 import pasteImg from "@/assets/paste.webp";
 import minaImg from "@/assets/mina-acosta.webp";
@@ -27,22 +19,7 @@ import panteonImg from "@/assets/panteon-ingles.webp";
 import penasImg from "@/assets/penas-cargadas.webp";
 import callesImg from "@/assets/calles-colonial.webp";
 
-type MarkerType = "place" | "business";
-
-interface MapMarkerData {
-  id: string;
-  name: string;
-  category: string;
-  lat: number;
-  lng: number;
-  description: string;
-  image: string;
-  type: MarkerType;
-  isPremium?: boolean;
-  rating?: number;
-  phone?: string;
-  status: "Activo" | "En alta demanda" | "Verificado";
-}
+const Map3DTwin = lazy(() => import("@/components/map/Map3DTwin").then((module) => ({ default: module.Map3DTwin })));
 
 const markers: MapMarkerData[] = [
   { id: "1", name: "Mina de Acosta", category: "Mina", lat: 20.141, lng: -98.672, description: "Museo y túneles históricos de minería con experiencias guiadas inmersivas.", image: minaImg, type: "place", rating: 4.8, status: "Verificado" },
@@ -55,30 +32,12 @@ const markers: MapMarkerData[] = [
   { id: "8", name: "Café La Neblina", category: "Restaurante", lat: 20.1382, lng: -98.6742, description: "Café de altura con ambiente local y reservación express.", image: panteonImg, type: "business", rating: 4.4, status: "Activo" },
 ];
 
-const createIcon = (type: MarkerType, isPremium?: boolean) => {
-  const color = isPremium ? "#f59e0b" : type === "place" ? "#60a5fa" : "#34d399";
-  return L.divIcon({
-    className: "custom-map-pin",
-    html: `<span style="display:flex;width:${isPremium ? 32 : 24}px;height:${isPremium ? 32 : 24}px;border-radius:999px;background:${color};box-shadow:0 0 0 4px rgba(15,23,42,.75),0 0 14px ${color};border:1px solid rgba(255,255,255,.7);"></span>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  });
-};
-
-function MapFocus({ selected }: { selected: MapMarkerData | null }) {
-  const map = useMap();
-
-  if (selected) {
-    map.flyTo([selected.lat, selected.lng], 15, { duration: 0.8 });
-  }
-
-  return null;
-}
-
-export default function MapaPage() {
+function MapaPageContent() {
   const [filter, setFilter] = useState<"all" | MarkerType>("all");
   const [selected, setSelected] = useState<MapMarkerData | null>(markers[0]);
   const [query, setQuery] = useState("");
+  const [mode, setMode] = useState<"2d" | "3d">("2d");
+  const { viewport, syncFrom2D, syncFrom3D } = useMapSync();
 
   const handleFilterChange = (nextFilter: MarkerType | "all") => {
     setFilter(nextFilter);
@@ -121,104 +80,186 @@ export default function MapaPage() {
     [filtered],
   );
 
+
+  const twinSignals = useMemo(() => synthesizeTwinSignals(filtered), [filtered]);
+  const twinSummary = useMemo(() => buildTwinOverlaySummary(twinSignals), [twinSignals]);
+  const suggestedActions = useMemo(() => buildRecommendedActions(twinSummary), [twinSummary]);
+
+  const integrationReferences = [
+    { label: "Eclipse Ditto", url: "https://github.com/eclipse-ditto/ditto" },
+    { label: "Underrun (simulación inmersiva)", url: "https://github.com/phoboslab/underrun" },
+    { label: "OpenTwins", url: "https://github.com/ertis-research/opentwins" },
+    { label: "Awesome Digital Twins", url: "https://github.com/edt-community/awesome-digital-twins" },
+    { label: "SmartHotel360 IoT", url: "https://github.com/microsoft/SmartHotel360-IoT" },
+    { label: "Forge Digital Twin", url: "https://github.com/Autodesk-Forge/forge-digital-twin" },
+  ] as const;
+
   return (
     <PageTransition>
       <SEOMeta {...PAGE_SEO.mapa} />
       <div className="min-h-screen bg-night-900 text-silver-300 cinematic-gradient">
         <Navbar />
 
-        <main className="mx-auto max-w-7xl space-y-5 px-4 pb-12 pt-24 md:px-6">
-          <header className="glass-dark neon-glow relative overflow-hidden rounded-3xl p-6">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(200,163,86,.25),transparent_45%)]" />
-            <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-gold-500/50 bg-gold-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-300">
-                  <Compass className="h-3.5 w-3.5" /> Gemelo Digital en Tiempo Real
-                </p>
-                <h1 className="font-serif text-3xl text-gold-400 md:text-4xl">Mapa inteligente de Real del Monte</h1>
-                <p className="mt-2 max-w-2xl text-sm text-silver-400">
-                  Explora lugares, negocios y experiencias con búsqueda dinámica, filtros avanzados y una vista
-                  inmersiva diseñada para convertir cada visita en una ruta inolvidable.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 self-start rounded-full border border-white/20 bg-white/5 p-1 text-xs">
-                <button className="rounded-full px-4 py-2 text-silver-300 transition hover:bg-white/10">2D</button>
-                <button className="rounded-full bg-gold-500 px-4 py-2 font-semibold text-night-900">3D Mesh</button>
-              </div>
-            </div>
-          </header>
+        {/* Immersive Hero */}
+        <section className="relative overflow-hidden pt-24 pb-10">
+          <div className="absolute inset-0 bg-cover bg-center opacity-15" style={{ backgroundImage: `url(${callesImg})` }} />
+          <div className="absolute inset-0 bg-gradient-to-b from-night-900/80 via-night-900/70 to-night-900" />
+          <AuroraBackground />
+          <div className="dust-particles" />
 
-          <section className="grid gap-3 md:grid-cols-3">
-            {stats.map((item) => (
-              <article key={item.label} className="glass-dark rounded-2xl border border-white/10 p-4">
-                <div className="flex items-center gap-3">
-                  <span className="rounded-xl bg-gold-500/20 p-2 text-gold-300">
-                    <item.icon className="h-4 w-4" />
+          <div className="relative mx-auto max-w-7xl px-4 py-12 md:px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+            >
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.2em] backdrop-blur-sm">
+                  <Compass className="h-3.5 w-3.5 text-gold-400" />
+                  <span>Gemelo Digital en Tiempo Real</span>
+                </div>
+                <h1 className="font-serif text-4xl md:text-6xl leading-tight">
+                  <span className="block">Mapa</span>
+                  <span
+                    className="block animate-gradient-text text-glow-gold"
+                    style={{
+                      backgroundImage: "linear-gradient(135deg, hsl(43,80%,55%) 0%, hsl(35,70%,65%) 25%, hsl(43,80%,55%) 50%, hsl(25,60%,50%) 75%, hsl(43,80%,55%) 100%)",
+                      backgroundSize: "200% 200%",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    }}
+                  >
+                    Inteligente
                   </span>
+                </h1>
+                <p className="max-w-2xl text-base text-silver-400 md:text-lg leading-relaxed">
+                  Infraestructura cartografica con clustering dinamico, sincronizacion 2D/3D y visual neblinoso cinematografico.
+                </p>
+              </div>
+              <div className="inline-flex rounded-full border border-white/15 bg-white/5 p-1 text-xs">
+                <button
+                  onClick={() => setMode("2d")}
+                  className={`rounded-full px-4 py-2 transition ${mode === "2d" ? "bg-gold-500 text-night-900" : "text-silver-300 hover:bg-white/10"}`}
+                >
+                  Vista 2D
+                </button>
+                <button
+                  onClick={() => setMode("3d")}
+                  className={`rounded-full px-4 py-2 transition ${mode === "3d" ? "bg-gold-500 text-night-900" : "text-silver-300 hover:bg-white/10"}`}
+                >
+                  Gemelo 3D
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        <GradientSeparator animated />
+
+        <main className="mx-auto max-w-7xl space-y-5 px-4 pb-12 md:px-6">
+
+          <section className="grid gap-4 md:grid-cols-3">
+            {stats.map((item) => (
+              <div key={item.label} className="glass-dark rounded-2xl border border-white/10 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-white/5 p-2">
+                    <item.icon className="h-5 w-5 text-gold-400" />
+                  </div>
                   <div>
-                    <p className="text-xs uppercase text-silver-500">{item.label}</p>
+                    <p className="text-xs uppercase tracking-wide text-silver-500">{item.label}</p>
                     <p className="text-xl font-semibold text-silver-200">{item.value}</p>
                   </div>
                 </div>
-              </article>
+              </div>
             ))}
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-12">
+          <section className="grid gap-6 lg:grid-cols-12">
             <div className="space-y-4 lg:col-span-8">
-              <div className="glass-dark flex flex-col gap-3 rounded-2xl border border-white/10 p-3 md:flex-row md:items-center">
-                <div className="relative flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-silver-500" />
-                  <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Buscar por nombre, categoría o experiencia"
-                    className="w-full rounded-xl border border-white/10 bg-night-700/80 py-2 pl-9 pr-3 text-sm text-silver-200 outline-none ring-gold-500/30 placeholder:text-silver-500 focus:ring"
-                  />
+              <div className="glass-dark rounded-2xl border border-white/10 p-4">
+                <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+                  <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-night-800/80 px-3 py-2">
+                    <Search className="h-4 w-4 text-silver-500" />
+                    <input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Buscar lugares, comercios o experiencias..."
+                      className="w-full bg-transparent text-sm text-silver-200 outline-none placeholder:text-silver-500"
+                    />
+                  </div>
+                  <button
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                      filter === "place"
+                        ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                        : "border-white/10 bg-white/5 text-silver-300 hover:border-white/20"
+                    }`}
+                    onClick={() => handleFilterChange("place")}
+                  >
+                    <Filter className="h-4 w-4" /> Lugares
+                  </button>
+                  <button
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                      filter === "business"
+                        ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                        : "border-white/10 bg-white/5 text-silver-300 hover:border-white/20"
+                    }`}
+                    onClick={() => handleFilterChange("business")}
+                  >
+                    <Layers className="h-4 w-4" /> Negocios
+                  </button>
                 </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { key: "all", label: "Todo" },
-                    { key: "place", label: "Lugares" },
-                    { key: "business", label: "Comercios" },
-                  ].map((item) => (
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  {["all", "place", "business"].map((item) => (
                     <button
-                      key={item.key}
-                      onClick={() => handleFilterChange(item.key as "all" | MarkerType)}
-                      className={`rounded-full border px-3 py-2 text-xs ${
-                        filter === item.key
-                          ? "border-gold-500 bg-gold-500/20 text-gold-300"
-                          : "border-white/10 bg-white/5 text-silver-400 hover:bg-white/10"
+                      key={item}
+                      onClick={() => handleFilterChange(item as "all" | MarkerType)}
+                      className={`rounded-full border px-3 py-1.5 ${
+                        filter === item
+                          ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                          : "border-white/10 bg-white/5 text-silver-400 hover:border-white/20"
                       }`}
                     >
-                      <Filter className="mr-1 inline h-3.5 w-3.5" /> {item.label}
+                      {item === "all" ? "Todo" : item === "place" ? "Lugares" : "Negocios"}
                     </button>
+                  ))}
+                </div>
+
+                <div className="rounded-2xl border bg-card p-4 space-y-3">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" /> Reglas de menciones comerciales por zona
+                  </p>
+                  {zoneMentions.map(({ policy, allowed, overflow }) => (
+                    <div key={policy.zone} className="rounded-xl border bg-background p-3">
+                      <p className="text-sm font-semibold">{policy.zone}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Máx. {policy.maxMentionsPerFeed} menciones · enfriamiento {policy.cooldownMinutes} min · {policy.fairnessWeight}</p>
+                      <p className="text-xs mt-1">Activas: {allowed.length}{overflow > 0 ? ` · retenidas por regla: ${overflow}` : ""}</p>
+                    </div>
                   ))}
                 </div>
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-white/10">
-                <MapContainer center={[20.1374, -98.6732]} zoom={14} className="h-[420px] w-full md:h-[640px]" zoomControl>
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                {mode === "2d" ? (
+                  <Map2DPanel
+                    markers={filtered}
+                    selected={selected}
+                    viewport={viewport}
+                    onSelect={setSelected}
+                    onViewportChange={syncFrom2D}
                   />
-                  <MapFocus selected={selected} />
-                  {filtered.map((marker) => (
-                    <Marker
-                      key={marker.id}
-                      position={[marker.lat, marker.lng]}
-                      icon={createIcon(marker.type, marker.isPremium)}
-                      eventHandlers={{ click: () => setSelected(marker) }}
-                    >
-                      <Popup>
-                        <strong>{marker.name}</strong>
-                        <p>{marker.description}</p>
-                      </Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
+                ) : (
+                  <Suspense
+                    fallback={
+                      <div className="flex h-[420px] items-center justify-center bg-night-900/70 text-sm text-silver-400 md:h-[640px]">
+                        Cargando Gemelo Digital 3D...
+                      </div>
+                    }
+                  >
+                    <Map3DTwin viewport={viewport} markers={filtered} onViewportChange={syncFrom3D} />
+                  </Suspense>
+                )}
               </div>
             </div>
 
@@ -287,20 +328,91 @@ export default function MapaPage() {
               </div>
 
               <div className="rounded-2xl border border-gold-500/30 bg-gold-500/10 p-4">
-                <h3 className="font-semibold text-gold-300">¿Tienes negocio?</h3>
-                <p className="mt-2 text-sm text-silver-400">
-                  Regístralo en el catálogo, activa tu plan mensual y destaca en el mapa con visibilidad premium.
-                </p>
+                <h3 className="font-semibold text-gold-300">Capa Realito AI (Plan de implementación)</h3>
+                <ol className="mt-2 list-decimal space-y-1 pl-4 text-sm text-silver-400">
+                  <li>Asistente contextual por POI con intentos de ruta, horario y compra.</li>
+                  <li>Streaming geoespacial de eventos por WebSocket federado.</li>
+                  <li>Sugerencias proactivas según densidad, clima y perfil de visitante.</li>
+                </ol>
                 <Link to="/negocios" className="mt-3 inline-block rounded-lg bg-gold-500 px-3 py-2 text-sm font-semibold text-night-900">
                   Ir al portal de comercios
                 </Link>
               </div>
             </aside>
           </section>
+
+          <section className="space-y-4 rounded-2xl border border-white/10 bg-night-900/70 p-4 md:p-6">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-silver-500">Integración híbrida</p>
+                <h2 className="text-2xl font-semibold text-silver-100">Control Room de Gemelos Digitales</h2>
+                <p className="mt-2 text-sm text-silver-400">Pipeline unificado para telemetría, modelos BIM/3D y simulaciones inmersivas con fallback para Lovable.</p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-silver-300">
+                <Workflow className="h-3.5 w-3.5 text-gold-300" />
+                Modo federado activo
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+              {twinSummary.map((source) => (
+                <article key={source.source} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-xs text-silver-400">{source.displayName}</p>
+                  <p className="mt-1 text-lg font-semibold text-silver-100">{source.healthScore}%</p>
+                  <p className="text-xs text-silver-400">Salud operativa</p>
+                  <div className="mt-2 space-y-1 text-xs text-silver-400">
+                    <p className="flex items-center gap-1"><Activity className="h-3 w-3 text-emerald-300" /> {source.throughputPerMinute}/min</p>
+                    <p className="flex items-center gap-1"><Cpu className="h-3 w-3 text-amber-300" /> {source.avgLatencyMs} ms</p>
+                    <p className="flex items-center gap-1"><DatabaseZap className="h-3 w-3 text-rose-300" /> {source.incidents} incidentes</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-xl border border-gold-500/30 bg-gold-500/10 p-4">
+                <h3 className="font-semibold text-gold-300">Acciones recomendadas</h3>
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-silver-300">
+                  {suggestedActions.length > 0 ? (
+                    suggestedActions.map((action) => <li key={action}>{action}</li>)
+                  ) : (
+                    <li>Sin alertas críticas; mantener sincronización en tiempo real y simulación calibrada.</li>
+                  )}
+                </ul>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <h3 className="font-semibold text-silver-100">Referencias integradas</h3>
+                <ul className="mt-2 space-y-1.5 text-sm text-silver-300">
+                  {integrationReferences.map((reference) => (
+                    <li key={reference.url}>
+                      <a
+                        href={reference.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 text-silver-200 hover:text-gold-300"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
+                        {reference.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
         </main>
 
         <Footer />
       </div>
     </PageTransition>
+  );
+}
+
+
+export default function MapaPage() {
+  return (
+    <MapSyncProvider>
+      <MapaPageContent />
+    </MapSyncProvider>
   );
 }

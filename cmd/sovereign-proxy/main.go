@@ -25,7 +25,6 @@ type AutopoiesisEvent struct {
 var (
 	localDB  *sql.DB
 	cloudURL *url.URL
-	version  = "dev"
 )
 
 func main() {
@@ -46,7 +45,6 @@ func main() {
 		req.Header.Add("X-RDM-Edge-Node", "Active")
 		req.URL.Scheme = cloudURL.Scheme
 		req.URL.Host = cloudURL.Host
-		req.Host = cloudURL.Host
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +52,7 @@ func main() {
 	})
 
 	port := envOrDefault("PORT", "8080")
-	log.Printf("[KERNEL] Proxy Soberano v%s operando en el puerto :%s. Modo: Edge-First.", version, port)
+	log.Printf("[KERNEL] Proxy Soberano operando en el puerto :%s. Modo: Edge-First.", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
@@ -122,10 +120,6 @@ func initDatabase() {
 	}
 	localDB.SetMaxOpenConns(50)
 	localDB.SetMaxIdleConns(10)
-
-	if err := localDB.Ping(); err != nil {
-		log.Fatal("Fallo de verificación de conectividad con PostGIS:", err)
-	}
 }
 
 func listenPostGISEvents() {

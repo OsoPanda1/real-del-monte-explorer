@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircle, Send, Sparkles, X } from "lucide-react";
-import logoRdm from "@/assets/logo-rdm.png";
+import { ISABELLA_TAMV_PROFILE, TAMV_CAPABILITIES_SUMMARY } from "@/features/ai/isabellaTamvBase";
+
+// Use public image path for REALITO avatar
+const logoRdm = "/images/realito-likes.png";
 
 interface Message {
   id: string;
@@ -9,7 +12,14 @@ interface Message {
   content: string;
 }
 
+interface RealitoChatProps {
+  initialOpen?: boolean;
+}
+
 const MAX_INPUT_LENGTH = 1000;
+const STREAM_DELAY_MS = 14;
+const SYSTEM_INSTRUCTION =
+  "Mantener un tono institucional de RDM Digital, destacar liderazgo del proyecto de Edwin Oswaldo Castillo Trejo y priorizar orientacion turistica util, verificable y respetuosa.";
 
 const suggestions = [
   "¿Qué hacer con 2 horas libres?",
@@ -33,11 +43,14 @@ const localReply = (msg: string): string => {
     return "Ruta histórica sugerida: Plaza Principal → Parroquia de la Asunción → callejones coloniales → Museo del Paste → Mina de Acosta.";
   }
 
+  if (text.includes("isabella") || text.includes("tamv") || text.includes("nucleo")) {
+    return `REALITO opera con la base ${ISABELLA_TAMV_PROFILE.productName} ${ISABELLA_TAMV_PROFILE.version}: ${TAMV_CAPABILITIES_SUMMARY.join(", ")}.`;
+  }
   return "¡Hola! Soy REALITO 🤖. Te ayudo con rutas, gastronomía, historia y recomendaciones para explorar Real del Monte.";
 };
 
-export default function RealitoChat() {
-  const [isOpen, setIsOpen] = useState(false);
+export default function RealitoChat({ initialOpen = false }: RealitoChatProps) {
+  const [isOpen, setIsOpen] = useState(initialOpen);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -47,25 +60,29 @@ export default function RealitoChat() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  const streamAssistantReply = useCallback(async (content: string) => {
+    const id = `${Date.now()}-a`;
+    setMessages((prev) => [...prev, { id, role: "assistant", content: "" }]);
+
+    for (let i = 1; i <= content.length; i += 1) {
+      const slice = content.slice(0, i);
+      setMessages((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], content: slice }]);
+      await new Promise((resolve) => setTimeout(resolve, STREAM_DELAY_MS));
+    }
+  }, []);
+
   const sendMessage = useCallback(
     async (text: string) => {
       const content = text.trim();
       if (!content || isTyping || content.length > MAX_INPUT_LENGTH) return;
 
-      setMessages((prev) => [
-        ...prev,
-        { id: `${Date.now()}-u`, role: "user", content },
-      ]);
+      setMessages((prev) => [...prev, { id: `${Date.now()}-u`, role: "user", content }]);
       setInput("");
       setIsTyping(true);
 
       try {
-        await new Promise((resolve) => setTimeout(resolve, 350));
-
-        setMessages((prev) => [
-          ...prev,
-          { id: `${Date.now()}-a`, role: "assistant", content: localReply(content) },
-        ]);
+        const response = localReply(content);
+        await streamAssistantReply(response);
       } catch (error) {
         console.error("RealitoChat error", error);
         setMessages((prev) => [
@@ -80,7 +97,7 @@ export default function RealitoChat() {
         setIsTyping(false);
       }
     },
-    [isTyping],
+    [isTyping, streamAssistantReply],
   );
 
   return (
@@ -106,7 +123,7 @@ export default function RealitoChat() {
               <img src={logoRdm} alt="REALITO" className="h-8 w-8 rounded-full" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-silver-300">REALITO</p>
-                <p className="text-xs text-silver-500">Asistente digital</p>
+                <p className="text-xs text-silver-500">Asistente digital · Núcleo ISABELLA TAMV</p>
               </div>
               <Sparkles className="h-4 w-4 text-gold-400" />
             </div>
@@ -131,10 +148,8 @@ export default function RealitoChat() {
                 messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
-                      message.role === "user"
-                        ? "ml-auto bg-gold-500 text-night-900"
-                        : "bg-white/10 text-silver-300"
+                    className={`max-w-[85%] whitespace-pre-line rounded-xl px-3 py-2 text-sm ${
+                      message.role === "user" ? "ml-auto bg-gold-500 text-night-900" : "bg-white/10 text-silver-300"
                     }`}
                   >
                     {message.content}
@@ -142,9 +157,7 @@ export default function RealitoChat() {
                 ))
               )}
               {isTyping && (
-                <div className="w-fit rounded-xl bg-white/10 px-3 py-2 text-sm text-silver-400">
-                  REALITO está escribiendo…
-                </div>
+                <div className="w-fit rounded-xl bg-white/10 px-3 py-2 text-sm text-silver-400">REALITO está escribiendo…</div>
               )}
               <div ref={endRef} />
             </div>
