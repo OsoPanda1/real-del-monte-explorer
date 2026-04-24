@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MapPin, MessageCircle, Send, Sparkles, X } from "lucide-react";
-import logoRdm from "@/assets/logo-rdm.png";
-import ReactMarkdown from "react-markdown";
+import { MessageCircle, Send, Sparkles, X } from "lucide-react";
+import { ISABELLA_TAMV_PROFILE, TAMV_CAPABILITIES_SUMMARY } from "@/features/ai/isabellaTamvBase";
+
+// Use public image path for REALITO avatar
+const logoRdm = "/images/realito-likes.png";
 
 interface Message {
   id: string;
@@ -10,197 +12,217 @@ interface Message {
   content: string;
 }
 
-interface Location {
-  lat: number;
-  lon: number;
+interface RealitoChatProps {
+  initialOpen?: boolean;
 }
 
-interface ExploreEvent {
-  title: string;
-  distanceKm?: number | null;
-}
-
-interface ExploreBusiness {
-  name: string;
-  category: string;
-}
-
-interface ExploreRoute {
-  name: string;
-  durationMinutes: number;
-  description: string;
-}
-
-interface ExploreResponse {
-  liveEvents?: ExploreEvent[];
-  businesses?: ExploreBusiness[];
-  routes?: ExploreRoute[];
-}
+const MAX_INPUT_LENGTH = 1000;
+const STREAM_DELAY_MS = 14;
+const SYSTEM_INSTRUCTION =
+  "Mantener un tono institucional de RDM Digital, destacar liderazgo del proyecto de Edwin Oswaldo Castillo Trejo y priorizar orientacion turistica util, verificable y respetuosa.";
 
 const suggestions = [
   "¿Qué hacer con 2 horas libres?",
   "¿Dónde comer el mejor paste?",
-  "Ruta histórica a pie",
+  "Ruta histórica recomendada",
   "¿Qué eventos hay hoy?",
-  "Leyendas de Real del Monte",
 ];
 
-function inferThemeFromMessage(msg: string): string {
-  const lower = msg.toLowerCase();
-  if (lower.includes("paste") || lower.includes("comer") || lower.includes("gastro")) return "gastronomia";
-  if (lower.includes("historia") || lower.includes("mina") || lower.includes("museo")) return "historia";
-  if (lower.includes("cultura") || lower.includes("arte") || lower.includes("tradición")) return "cultura";
-  if (lower.includes("naturaleza") || lower.includes("montaña") || lower.includes("sendero") || lower.includes("eco")) return "ecoturismo";
-  return "historia";
-}
+const localReply = (msg: string): string => {
+  const text = msg.toLowerCase();
 
-export default function RealitoChat() {
-  const [isOpen, setIsOpen] = useState(false);
+  if (text.includes("paste") || text.includes("comer")) {
+    return "Para comer, empieza por los pastes tradicionales en el centro y luego prueba un café de olla en los portales. Si quieres, te armo una ruta gastronómica por tiempos.";
+  }
+
+  if (text.includes("evento") || text.includes("hoy")) {
+    return "Hoy te recomiendo revisar la plaza principal y los foros culturales cercanos; suelen concentrar actividades y música local por la tarde.";
+  }
+
+  if (text.includes("ruta") || text.includes("historia")) {
+    return "Ruta histórica sugerida: Plaza Principal → Parroquia de la Asunción → callejones coloniales → Museo del Paste → Mina de Acosta.";
+  }
+
+  if (text.includes("isabella") || text.includes("tamv") || text.includes("nucleo")) {
+    return `REALITO opera con la base ${ISABELLA_TAMV_PROFILE.productName} ${ISABELLA_TAMV_PROFILE.version}: ${TAMV_CAPABILITIES_SUMMARY.join(", ")}.`;
+  }
+  return "¡Hola! Soy REALITO 🤖. Te ayudo con rutas, gastronomía, historia y recomendaciones para explorar Real del Monte.";
+};
+
+export default function RealitoChat({ initialOpen = false }: RealitoChatProps) {
+  const [isOpen, setIsOpen] = useState(initialOpen);
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [location, setLocation] = useState<Location | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      () => undefined
-    );
+  const sendMessage = useCallback(
+    async (text: string) => {
+      const content = text.trim();
+      if (!content || isTyping) return;
+
+      setMessages((prev) => [
+        ...prev,
+        { id: `${Date.now()}-u`, role: "user", content },
+      ]);
+      setInput("");
+      setIsTyping(true);
+
+      await new Promise((resolve) => setTimeout(resolve, 350));
+
+      setMessages((prev) => [
+        ...prev,
+        { id: `${Date.now()}-a`, role: "assistant", content: localReply(content) },
+      ]);
+      setIsTyping(false);
+    },
+    [isTyping],
+  const streamAssistantReply = useCallback(async (content: string) => {
+    const id = `${Date.now()}-a`;
+    setMessages((prev) => [...prev, { id, role: "assistant", content: "" }]);
+
+    for (let i = 1; i <= content.length; i += 1) {
+      const slice = content.slice(0, i);
+      setMessages((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], content: slice }]);
+      await new Promise((resolve) => setTimeout(resolve, STREAM_DELAY_MS));
+    }
   }, []);
 
-  const fetchExploreData = async (theme: string): Promise<ExploreResponse | null> => {
-    try {
-      const params = location ? `?lat=${location.lat}&lon=${location.lon}` : "";
-      const response = await fetch(`/api/explore/theme/${theme}${params}`);
-      if (!response.ok) return null;
-      return (await response.json()) as ExploreResponse;
-    } catch {
-      return null;
-    }
-  };
+  const sendMessage = useCallback(
+    async (text: string) => {
+      const content = text.trim();
+      if (!content || isTyping || content.length > MAX_INPUT_LENGTH) return;
 
-  const getAssistantReply = async (userText: string) => {
-    const theme = inferThemeFromMessage(userText);
-    const data = await fetchExploreData(theme);
-    const lower = userText.toLowerCase();
+      setMessages((prev) => [...prev, { id: `${Date.now()}-u`, role: "user", content }]);
+      setInput("");
+      setIsTyping(true);
 
-    if ((lower.includes("evento") || lower.includes("hoy")) && data?.liveEvents?.length) {
-      const events = data.liveEvents.slice(0, 3);
-      return `Hoy encontré estos eventos:\n\n${events
-        .map((e, i: number) => `${i + 1}. **${e.title}**${e.distanceKm ? ` (${e.distanceKm.toFixed(1)} km)` : ""}`)
-        .join("\n")}`;
-    }
-
-    if ((lower.includes("paste") || lower.includes("comer")) && data?.businesses?.length) {
-      const businesses = data.businesses.slice(0, 3);
-      return `Te recomiendo estos lugares:\n\n${businesses
-        .map((b, i: number) => `${i + 1}. **${b.name}** · ${b.category}`)
-        .join("\n")}`;
-    }
-
-    if ((lower.includes("ruta") || lower.includes("recorrido")) && data?.routes?.length) {
-      const route = data.routes[0];
-      return `Ruta sugerida: **${route.name}** (${route.durationMinutes} min). ${route.description}`;
-    }
-
-    return "¡Hola! Soy **REALITO**, tu guía de Real del Monte. Pregúntame por rutas, historia, gastronomía o eventos 🌫️";
-  };
-
-  const sendMessage = async (text = input) => {
-    const message = text.trim();
-    if (!message) return;
-
-    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", content: message }]);
-    setInput("");
-    setIsTyping(true);
-
-    const reply = await getAssistantReply(message);
-
-    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: reply }]);
-    setIsTyping(false);
-  };
+      try {
+        const response = localReply(content);
+        await streamAssistantReply(response);
+      } catch (error) {
+        console.error("RealitoChat error", error);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `${Date.now()}-a-error`,
+            role: "assistant",
+            content: "Tuvimos un problema al procesar tu mensaje. Intenta de nuevo en unos momentos.",
+          },
+        ]);
+      } finally {
+        setIsTyping(false);
+      }
+    },
+    [isTyping, streamAssistantReply],
+  );
 
   return (
     <>
       <motion.button
         onClick={() => setIsOpen((v) => !v)}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-xl"
+        whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gold-400 shadow-[0_0_24px_rgba(212,178,106,0.4)]"
       >
-        <AnimatePresence mode="wait">
-          {isOpen ? (
-            <motion.div key="close" initial={{ opacity: 0, rotate: -60 }} animate={{ opacity: 1, rotate: 0 }} exit={{ opacity: 0, rotate: 60 }}>
-              <X className="h-6 w-6 text-night-900" />
-            </motion.div>
-          ) : (
-            <motion.div key="open" initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.6 }} className="relative">
-              <MessageCircle className="h-6 w-6 text-night-900" />
-              <Sparkles className="absolute -right-1 -top-1 h-3.5 w-3.5 text-night-900" />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
       </motion.button>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.96 }}
-            className="fixed bottom-24 right-6 z-50 flex h-[500px] w-[360px] max-w-[calc(100vw-48px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-night-800/95 backdrop-blur"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-24 right-6 z-50 flex h-[520px] w-[360px] max-w-[calc(100vw-48px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-night-900/95 shadow-2xl"
           >
-            <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
-              <img src={logoRdm} alt="REALITO" className="h-9 w-9 rounded-full border border-gold-400/30 p-1" />
-              <div>
-                <h3 className="text-sm font-bold text-silver-300">REALITO</h3>
-                <p className="flex items-center gap-1 text-[11px] text-silver-500">
-                  Guía digital
-                  {location && <MapPin className="h-3 w-3 text-green-400" />}
-                </p>
+            <div className="flex items-center gap-3 border-b border-white/10 bg-night-800 px-4 py-3">
+              <img src={logoRdm} alt="REALITO" className="h-8 w-8 rounded-full" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-silver-300">REALITO</p>
+                <p className="text-xs text-silver-500">Asistente digital</p>
               </div>
+              <Sparkles className="h-4 w-4 text-gold-400" />
             </div>
 
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
-              {messages.length === 0 && (
-                <div className="space-y-2 text-center">
-                  <p className="text-sm text-silver-400">¿Qué quieres explorar hoy?</p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {suggestions.map((s) => (
-                      <button key={s} onClick={() => sendMessage(s)} className="rounded-full bg-gold-400/10 px-3 py-1 text-xs text-gold-300 hover:bg-gold-400/20">
-                        {s}
+              {messages.length === 0 ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-silver-400">¿Qué deseas explorar hoy?</p>
+                  <div className="flex flex-wrap gap-2">
+                    {suggestions.map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        onClick={() => sendMessage(suggestion)}
+                        className="rounded-full bg-gold-400/15 px-3 py-1 text-xs text-gold-400"
+                      >
+                        {suggestion}
                       </button>
                     ))}
                   </div>
                 </div>
+              ) : (
+                messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
+                      message.role === "user"
+                        ? "ml-auto bg-gold-500 text-night-900"
+                        : "bg-white/10 text-silver-300"
+                    }`}
+                  >
+                    {message.content}
+                  </div>
+                ))
               )}
-
-              {messages.map((m) => (
-                <div key={m.id} className={`max-w-[90%] rounded-xl px-3 py-2 text-sm ${m.role === "user" ? "ml-auto bg-gold-400 text-night-900" : "bg-white/5 text-silver-300"}`}>
-                  <ReactMarkdown>{m.content}</ReactMarkdown>
+              {isTyping && (
+                <div className="w-fit rounded-xl bg-white/10 px-3 py-2 text-sm text-silver-400">
+                  REALITO está escribiendo…
                 </div>
-              ))}
-              {isTyping && <p className="text-xs text-silver-500">REALITO está escribiendo…</p>}
-              <div ref={messagesEndRef} />
+              ) : (
+                messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`max-w-[85%] whitespace-pre-line rounded-xl px-3 py-2 text-sm ${
+                      message.role === "user" ? "ml-auto bg-gold-500 text-night-900" : "bg-white/10 text-silver-300"
+                    }`}
+                  >
+                    {message.content}
+                  </div>
+                ))
+              )}
+              {isTyping && (
+                <div className="w-fit rounded-xl bg-white/10 px-3 py-2 text-sm text-silver-400">REALITO está escribiendo…</div>
+              )}
+              <div ref={endRef} />
             </div>
 
-            <div className="flex gap-2 border-t border-white/10 p-3">
+            <form
+              className="flex gap-2 border-t border-white/10 p-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void sendMessage(input);
+              }}
+            >
               <input
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                onChange={(event) => setInput(event.target.value)}
                 placeholder="Escribe tu pregunta..."
-                className="flex-1 rounded-lg border border-white/15 bg-night-900 px-3 py-2 text-sm text-silver-200 outline-none"
+                maxLength={MAX_INPUT_LENGTH}
+                className="flex-1 rounded-lg border border-white/10 bg-night-800 px-3 py-2 text-sm text-silver-300 outline-none"
               />
-              <button onClick={() => sendMessage()} className="rounded-lg bg-gold-400 px-3 text-night-900">
+              <button
+                type="submit"
+                className="rounded-lg bg-gold-500 px-3 py-2 text-night-900 disabled:opacity-50"
+                disabled={!input.trim() || isTyping || input.trim().length > MAX_INPUT_LENGTH}
+              >
                 <Send className="h-4 w-4" />
               </button>
-            </div>
+            </form>
           </motion.div>
         )}
       </AnimatePresence>

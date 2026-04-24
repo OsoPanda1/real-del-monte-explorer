@@ -1,22 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { ChevronDown, Compass, Map, MapPin } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import heroImg from "@/assets/hero-real-del-monte.webp";
-import logoRdm from "@/assets/logo-rdm-digital.png";
-import heroVideo from "@/assets/hero-video.mp4";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useRef } from "react";
+import { ChevronDown, MapPin, Compass, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AuroraBackground } from "@/components/VisualEffects";
 
-const slides = [
-  { title: "Real del Monte", subtitle: "Pueblo Mágico entre niebla y plata" },
-  { title: "Mineral del Monte", subtitle: "Hidalgo · México · 2,700 msnm" },
-  { title: "Cuna del Paste", subtitle: "Tradición inglesa desde el siglo XIX" },
-  { title: "RDM Digital 2026", subtitle: "Innovación Turística Inteligente" },
-];
+// Use public image path
+const heroImg = "/images/rdm-hero.png";
 
 export default function HeroSection() {
-  const navigate = useNavigate();
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll({
@@ -24,94 +15,144 @@ export default function HeroSection() {
     offset: ["start start", "end start"],
   });
 
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.08]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
+  const activeSlide = slides[currentSlide];
 
-    return () => clearInterval(timer);
-  }, []);
-
+export default function HeroSection() {
   return (
-    <section ref={containerRef} className="relative h-screen min-h-[700px] w-full overflow-hidden">
-      <motion.div className="absolute inset-0" style={{ y, scale }}>
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${heroImg})` }} />
-        <video
-          src={heroVideo}
-          poster={heroImg}
-          autoPlay
-          muted
-          loop
-          playsInline
-          onLoadedData={() => setIsVideoLoaded(true)}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${isVideoLoaded ? "opacity-100" : "opacity-0"}`}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(220,45%,18%)]/40 via-transparent to-[hsl(220,45%,18%)]/90" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[hsl(220,45%,18%)]/50 via-transparent to-[hsl(220,45%,18%)]/30" />
-      </motion.div>
+    <section ref={containerRef} className="relative min-h-screen overflow-hidden bg-night-900 text-silver-300">
+      {/* Parallax Background */}
+      <motion.div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${heroImg})`, y: backgroundY, scale: 1.1, opacity: 0.4 }}
+      />
 
-      <motion.div className="relative z-20 flex h-full flex-col items-center justify-center px-6 text-center" style={{ opacity }}>
-        <motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, delay: 0.2 }} className="mb-8">
-          <img src={logoRdm} alt="RDM Digital" className="h-28 w-28 object-contain md:h-36 md:w-36" />
-        </motion.div>
+      {/* Gradient Overlays */}
+      <div className="absolute inset-0 bg-gradient-to-b from-night-900/80 via-night-900/60 to-night-900" />
+      <div className="absolute inset-0 bg-gradient-to-r from-night-900/40 via-transparent to-night-900/40" />
 
-        <div className="mb-8 flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-5 py-2 backdrop-blur-md">
-          <MapPin className="h-3 w-3 text-gold-400" />
-          <span className="text-[10px] uppercase tracking-[0.3em] text-silver-300 md:text-xs">Mineral del Monte · Hidalgo · México</span>
-        </div>
+      {/* Aurora Ambient */}
+      <AuroraBackground />
 
-        <div className="relative mb-6 h-24 w-full max-w-4xl md:h-28">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentSlide}
-              initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -20, filter: "blur(10px)" }}
-              transition={{ duration: 0.7 }}
-              className="absolute inset-0 flex items-center justify-center gap-4"
+      {/* Floating Dust Particles */}
+      <div className="dust-particles" />
+
+      {/* Main Content */}
+      <motion.div
+        style={{ y: textY, opacity }}
+        className="relative mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-6 text-center"
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="space-y-8"
+        >
+          {/* Top Badge */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-xs uppercase tracking-[0.25em] backdrop-blur-sm"
+          >
+            <MapPin className="h-3.5 w-3.5 text-gold-400" />
+            <span>Real del Monte</span>
+            <span className="mx-1 h-3 w-px bg-white/20" />
+            <span className="text-gold-400">Pueblo Magico</span>
+            <span className="mx-1 h-3 w-px bg-white/20" />
+            <span>Hidalgo</span>
+          </motion.div>
+
+          {/* Main Title */}
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+            className="font-serif text-5xl leading-tight md:text-7xl lg:text-8xl"
+          >
+            <span className="block">Explora la magia de</span>
+            <span
+              className="block animate-gradient-text text-glow-gold"
+              style={{
+                backgroundImage: "linear-gradient(135deg, hsl(43,80%,55%) 0%, hsl(35,70%,65%) 25%, hsl(43,80%,55%) 50%, hsl(25,60%,50%) 75%, hsl(43,80%,55%) 100%)",
+                backgroundSize: "200% 200%",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
             >
-              <h1 className="font-display whitespace-nowrap text-3xl font-bold tracking-tight md:text-5xl lg:text-6xl text-silver-100">
-                {slides[currentSlide].title}
-              </h1>
-              <span className="hidden h-8 w-px bg-gold-400/50 sm:block" />
-              <p className="hidden text-xs uppercase tracking-[0.3em] text-gold-300 md:text-sm sm:block">{slides[currentSlide].subtitle}</p>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+              Real del Monte
+            </span>
+          </motion.h1>
 
-        <div className="mb-10 flex gap-2">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentSlide(i)}
-              className={`h-[3px] rounded-full transition-all ${currentSlide === i ? "w-8 bg-gradient-to-r from-blue-400 to-gold-400" : "w-1.5 bg-silver-500/40"}`}
-              aria-label={`Ir a slide ${i + 1}`}
-            />
-          ))}
-        </div>
+          {/* Subtitle */}
+          <motion.p
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.7 }}
+            className="mx-auto max-w-2xl text-base text-silver-400 md:text-lg leading-relaxed"
+          >
+            Historia minera, gastronomia local, eventos vivos y rutas culturales
+            en una sola plataforma digital a 2,700 metros de altura.
+          </motion.p>
 
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.6 }} className="flex flex-col gap-3 sm:flex-row">
-          <button onClick={() => navigate("/rutas")} className="btn-hero-primary flex items-center gap-2">
-            <Compass className="h-4 w-4" /> Diseñar mi visita
-          </button>
-          <button onClick={() => navigate("/mapa")} className="btn-hero-glass flex items-center gap-2">
-            <Map className="h-4 w-4" /> Ver mapa vivo del pueblo
-          </button>
-        </motion.div>
+          {/* Stats Row */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.9 }}
+            className="flex flex-wrap items-center justify-center gap-6 text-xs text-silver-500"
+          >
+            {[
+              { label: "Altitud", value: "2,700 msnm" },
+              { label: "Fundado", value: "1534" },
+              { label: "Pueblo Magico", value: "Desde 2004" },
+            ].map((stat) => (
+              <div key={stat.label} className="flex items-center gap-2">
+                <Sparkles className="h-3 w-3 text-gold-400/60" />
+                <span className="text-silver-300 font-medium">{stat.value}</span>
+                <span className="text-silver-500">{stat.label}</span>
+              </div>
+            ))}
+          </motion.div>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }} className="absolute bottom-10 flex flex-col items-center gap-2">
-          <span className="text-xs uppercase tracking-[0.3em] text-silver-500">Descubrir</span>
-          <motion.div animate={{ y: [0, 6, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>
-            <ChevronDown className="h-5 w-5 text-gold-400/60" />
+          {/* CTA Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 1.0 }}
+            className="flex flex-wrap justify-center gap-4 pt-2"
+          >
+            <Link
+              to="/mapa"
+              className="btn-hero-primary group inline-flex items-center gap-2"
+            >
+              <Compass className="h-4 w-4 transition-transform group-hover:rotate-45" />
+              Explorar mapa
+            </Link>
+            <Link
+              to="/rutas"
+              className="btn-hero-glass inline-flex items-center gap-2"
+            >
+              Ver rutas turisticas
+            </Link>
           </motion.div>
         </motion.div>
-      </motion.div>
 
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
+        {/* Scroll Indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-8 flex flex-col items-center gap-2"
+        >
+          <span className="text-[10px] uppercase tracking-[0.3em] text-silver-500">Descubre</span>
+          <ChevronDown className="h-5 w-5 animate-bounce text-gold-400/60" />
+        </motion.div>
+      </motion.div>
     </section>
   );
 }

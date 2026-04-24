@@ -28,9 +28,10 @@ const BusinessCard = ({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className={`group flex gap-4 p-4 rounded-2xl transition-all duration-300 cursor-pointer hover:-translate-y-1 ${
+      whileHover={{ y: -4, scale: 1.01 }}
+      className={`group flex gap-4 p-4 rounded-2xl transition-all duration-300 cursor-pointer hover-shimmer ${
         isPremium
-          ? "glass shadow-premium border-gold/20"
+          ? "glass shadow-premium border-gold/20 card-glow-hover"
           : "glass shadow-card hover:shadow-elevated"
       }`}
     >

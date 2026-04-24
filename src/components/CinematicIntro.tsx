@@ -1,7 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import introVideo from "@/assets/RDM Digital_Call To Action_2_2026-03-03 05_52_52.mp4";
-import introAudio from "@/assets/intro_off.mp3";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface CinematicIntroProps {
   onComplete: () => void;
@@ -37,59 +35,436 @@ export default function CinematicIntro({ onComplete }: CinematicIntroProps) {
   const handleStart = async () => {
     setStarted(true);
     try {
-      const audio = new Audio(introAudio);
-      audio.volume = 0.35;
-      await audio.play();
+      const ctx = new AudioContext();
+      audioCtxRef.current = ctx;
+      const audio = new Audio("/audio/isabella-intro.mp3");
+      audio.crossOrigin = "anonymous";
       audioRef.current = audio;
-    } catch {
-      // Browser may block autoplay; intro video still proceeds.
+
+      const source = ctx.createMediaElementSource(audio);
+
+      // Analyser for visualizer
+      const anal = ctx.createAnalyser();
+      anal.fftSize = 256;
+      anal.smoothingTimeConstant = 0.8;
+      setAnalyser(anal);
+
+      // FX chain
+      const delay = ctx.createDelay(1.0);
+      delay.delayTime.value = 0.4;
+      const feedback = ctx.createGain();
+      feedback.gain.value = 0.35;
+      const wet = ctx.createGain();
+      wet.gain.value = 0.3;
+      const dry = ctx.createGain();
+      dry.gain.value = 1.0;
+
+      const bass = ctx.createBiquadFilter();
+      bass.type = "lowshelf";
+      bass.frequency.value = 200;
+      bass.gain.value = 6;
+
+      const high = ctx.createBiquadFilter();
+      high.type = "highshelf";
+      high.frequency.value = 8000;
+      high.gain.value = 3;
+
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -24;
+      compressor.ratio.value = 4;
+
+      // Dry path -> analyser -> destination
+      source.connect(bass).connect(high).connect(dry).connect(compressor);
+      compressor.connect(anal);
+      anal.connect(ctx.destination);
+
+      // Wet (echo) path
+      source.connect(delay);
+      delay.connect(feedback);
+      feedback.connect(delay);
+      delay.connect(wet);
+      wet.connect(compressor);
+
+      // Fade in
+      audio.volume = 0;
+      audio.play().then(() => {
+        let vol = 0;
+        const fadeIn = setInterval(() => {
+          vol = Math.min(vol + 0.05, 1);
+          audio.volume = vol;
+          if (vol >= 1) clearInterval(fadeIn);
+        }, 80);
+      }).catch(console.warn);
+
+      // Fade out near end
+      setTimeout(() => {
+        if (audioRef.current) {
+          let vol = audioRef.current.volume;
+          const fadeOut = setInterval(() => {
+            vol = Math.max(vol - 0.05, 0);
+            if (audioRef.current) audioRef.current.volume = vol;
+            if (vol <= 0) {
+              clearInterval(fadeOut);
+              audioRef.current?.pause();
+            }
+          }, 60);
+        }
+      }, 8000);
+    } catch (e) {
+      console.warn("Audio init failed:", e);
     }
   };
 
+  useEffect(() => {
+    if (!started) return;
+    const timers = [
+      setTimeout(() => setPhase(1), 400),
+      setTimeout(() => setPhase(2), 2200),
+      setTimeout(() => setPhase(3), 4500),
+      setTimeout(() => setPhase(4), 6800),
+      setTimeout(() => setPhase(5), 8500),
+      setTimeout(() => {
+        audioRef.current?.pause();
+        audioCtxRef.current?.close().catch(() => {});
+        onComplete();
+      }, 9500),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [started, onComplete]);
+
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+      audioCtxRef.current?.close().catch(() => {});
+    };
+  }, []);
+
   return (
     <AnimatePresence>
-      <motion.div className="fixed inset-0 z-[9999] bg-black">
-        {!started ? (
-          <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-            <h1 className="mb-6 text-2xl font-semibold text-silver-100 md:text-4xl">
-              Bienvenido a RDM Digital, un pueblo mágico de altura
-            </h1>
-            <p className="mb-8 max-w-2xl text-sm text-silver-400 md:text-base">
-              Al presionar el botón aceptas permisos para audio, video y sesión inmersiva de RDM Digital.
-            </p>
-            <button
-              onClick={handleStart}
-              className="rounded-full border border-gold-400/60 bg-gold-400 px-8 py-3 text-sm font-semibold text-night-900 shadow-[0_0_32px_rgba(212,178,106,0.4)]"
+      {(!started || phase < 5) && (
+        <motion.div
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
+          style={{
+            background: "radial-gradient(ellipse at center, hsl(220 25% 6%) 0%, hsl(220 35% 2%) 100%)",
+            cursor: !started ? "pointer" : "default",
+          }}
+          onClick={!started ? startIntro : undefined}
+        >
+          {/* Click to start */}
+          {!started && (
+            <motion.div
+              className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             >
-              Bienvenido a RDM Digital
-            </button>
-          </div>
-        ) : (
-          <>
-            <video src={introVideo} autoPlay playsInline className="h-full w-full object-cover opacity-55" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/40 to-black/80" />
-
-            <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
-              <motion.p
-                key={moment}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -14 }}
-                className="max-w-3xl text-lg leading-relaxed text-silver-100 md:text-3xl"
+              <img 
+                src="/images/rdm-hero.png" 
+                alt="RDM Digital" 
+                className="w-32 h-32 md:w-48 md:h-48 object-contain rounded-full opacity-80"
+                style={{ filter: "drop-shadow(0 0 30px hsla(210,100%,60%,0.5))" }}
+              />
+              <p className="text-xs md:text-sm tracking-[0.35em] uppercase" style={{ color: "hsl(210 60% 65%)" }}>
+                Toca para iniciar la experiencia
+              </p>
+              <motion.div
+                className="w-16 h-16 rounded-full border-2 flex items-center justify-center"
+                style={{ borderColor: "hsla(210, 80%, 60%, 0.5)" }}
+                animate={{ scale: [1, 1.12, 1], boxShadow: ["0 0 0px hsla(210,80%,60%,0)", "0 0 20px hsla(210,80%,60%,0.3)", "0 0 0px hsla(210,80%,60%,0)"] }}
+                transition={{ duration: 1.8, repeat: Infinity }}
               >
-                {storyMoments[moment]}
-              </motion.p>
-            </div>
+                <div className="w-0 h-0 ml-1 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[14px]"
+                  style={{ borderLeftColor: "hsl(210 80% 65%)" }} />
+              </motion.div>
+            </motion.div>
+          )}
 
-            <button
-              onClick={onComplete}
-              className="absolute right-5 top-5 rounded-full border border-white/20 bg-black/40 px-4 py-2 text-xs uppercase tracking-widest text-silver-300"
-            >
-              Omitir intro
-            </button>
-          </>
-        )}
-      </motion.div>
+          {started && (
+            <>
+              {/* Background Hero Image */}
+              <motion.div
+                className="absolute inset-0 z-0"
+                initial={{ opacity: 0, scale: 1.1 }}
+                animate={{ opacity: 0.4, scale: 1 }}
+                transition={{ duration: 2 }}
+              >
+                <img
+                  src="/images/rdm-hero.png"
+                  alt=""
+                  className="w-full h-full object-cover"
+                  style={{ filter: "saturate(0.7) contrast(1.1) brightness(0.6)" }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[hsl(220,25%,4%)] via-transparent to-[hsl(220,25%,4%)]" />
+              </motion.div>
+
+              {/* Particles */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                {[...Array(60)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute rounded-full"
+                    style={{
+                      width: `${1 + Math.random() * 2}px`,
+                      height: `${1 + Math.random() * 2}px`,
+                      background: i % 4 === 0 ? "hsla(210,100%,70%,0.7)"
+                        : i % 4 === 1 ? "hsla(43,90%,60%,0.6)"
+                        : i % 4 === 2 ? "hsla(280,60%,70%,0.4)"
+                        : "hsla(0,0%,90%,0.3)",
+                      left: `${Math.random() * 100}%`,
+                      top: `${Math.random() * 100}%`,
+                    }}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{
+                      opacity: [0, 0.8, 0],
+                      scale: [0.2, 1.8, 0.2],
+                      y: [0, -80 - Math.random() * 60, 0],
+                      x: [0, (Math.random() - 0.5) * 40, 0],
+                    }}
+                    transition={{ duration: 3 + Math.random() * 3, repeat: Infinity, delay: Math.random() * 2.5, ease: "easeInOut" }}
+                  />
+                ))}
+              </div>
+
+              {/* Orbital rings */}
+              <motion.div
+                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                initial={{ opacity: 0 }}
+                animate={phase >= 1 ? { opacity: 1 } : {}}
+              >
+                {[0, 1, 2].map((ring) => (
+                  <motion.div
+                    key={ring}
+                    className="absolute rounded-full"
+                    style={{
+                      width: `${400 + ring * 150}px`,
+                      height: `${400 + ring * 150}px`,
+                      border: `1px solid ${ring === 1 ? "hsla(43,80%,55%,0.2)" : "hsla(210,100%,70%,0.2)"}`,
+                    }}
+                    initial={{ opacity: 0, scale: 0.3 }}
+                    animate={phase >= 1 ? { opacity: [0, 0.3, 0.1], scale: [0.3, 1, 1.15], rotate: ring % 2 === 0 ? [0, 180] : [45, -135] } : {}}
+                    transition={{ duration: 3 + ring * 0.5, ease: "easeOut", delay: ring * 0.3 }}
+                  />
+                ))}
+              </motion.div>
+
+              {/* Light sweep */}
+              <motion.div
+                className="absolute inset-0 pointer-events-none"
+                initial={{ opacity: 0 }}
+                animate={phase >= 1 ? { opacity: [0, 0.15, 0], background: ["linear-gradient(90deg,transparent 0%,hsla(210,80%,60%,0.2) 50%,transparent 100%)", "linear-gradient(90deg,transparent 0%,hsla(43,80%,55%,0.2) 50%,transparent 100%)", "linear-gradient(90deg,transparent 100%,transparent 100%)"] } : {}}
+                transition={{ duration: 3, ease: "easeInOut" }}
+              />
+
+              {/* Scan lines */}
+              <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{ backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 2px,hsla(0,0%,100%,0.04) 2px,hsla(0,0%,100%,0.04) 4px)" }} />
+
+              {/* Logo Badge */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.4, filter: "blur(40px)" }}
+                animate={phase >= 1 ? { opacity: 1, scale: 1, filter: "blur(0px)" } : {}}
+                transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1] }}
+                className="relative mb-6 z-10"
+              >
+                <motion.div
+                  className="absolute inset-0 rounded-full blur-3xl"
+                  style={{ background: "radial-gradient(circle,hsla(210,100%,60%,0.3) 0%,hsla(43,80%,50%,0.2) 50%,transparent 80%)", transform: "scale(2.5)" }}
+                  animate={phase >= 1 ? { opacity: [0.3, 0.7, 0.3] } : {}}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <div 
+                  className="relative w-36 h-36 md:w-52 md:h-52 rounded-full flex items-center justify-center"
+                  style={{ 
+                    background: "linear-gradient(135deg, hsla(220,30%,15%,0.9), hsla(220,40%,8%,0.95))",
+                    border: "2px solid hsla(43,80%,55%,0.4)",
+                    boxShadow: "0 0 60px hsla(210,100%,60%,0.3), inset 0 0 30px hsla(210,100%,60%,0.1)"
+                  }}
+                >
+                  <div className="text-center">
+                    <p className="text-[10px] md:text-xs tracking-[0.3em] uppercase" style={{ color: "hsl(210 70% 70%)" }}>
+                      RDM DIGITAL
+                    </p>
+                    <h2 
+                      className="font-serif text-lg md:text-2xl font-bold mt-1"
+                      style={{
+                        background: "linear-gradient(135deg, hsl(43 80% 70%), hsl(43 60% 55%))",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}
+                    >
+                      REAL DEL
+                    </h2>
+                    <h2 
+                      className="font-serif text-lg md:text-2xl font-bold"
+                      style={{
+                        background: "linear-gradient(135deg, hsl(43 80% 70%), hsl(43 60% 55%))",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}
+                    >
+                      MONTE
+                    </h2>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Era badge */}
+              <motion.div
+                initial={{ opacity: 0, y: 25, scale: 0.9 }}
+                animate={phase >= 2 ? { opacity: 1, y: 0, scale: 1 } : {}}
+                transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                className="relative z-10 mb-4"
+              >
+                <span
+                  className="inline-block px-6 py-2 rounded-full text-[10px] md:text-xs tracking-[0.5em] uppercase font-medium"
+                  style={{
+                    background: "linear-gradient(135deg,hsla(210,100%,60%,0.12),hsla(43,80%,50%,0.08))",
+                    border: "1px solid hsla(210,100%,70%,0.25)",
+                    color: "hsl(210 80% 75%)",
+                    boxShadow: "0 0 30px hsla(210,100%,60%,0.15)",
+                  }}
+                >
+                  2026 - Nueva Era Digital
+                </span>
+              </motion.div>
+
+              {/* Title */}
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={phase >= 2 ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 1.2, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                className="text-center relative z-10 px-6 mb-2"
+              >
+                <h1
+                  className="font-serif text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-3"
+                  style={{
+                    background: "linear-gradient(135deg,hsl(0 0% 97%),hsl(43 70% 78%),hsl(210 60% 85%),hsl(0 0% 90%))",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  Real del Monte
+                </h1>
+                <motion.div
+                  className="h-[2px] mx-auto mb-4"
+                  style={{ background: "linear-gradient(90deg,transparent,hsl(210 80% 65%),hsl(43 80% 55%),transparent)" }}
+                  initial={{ width: 0 }}
+                  animate={phase >= 2 ? { width: "10rem" } : {}}
+                  transition={{ duration: 1, delay: 0.4, ease: "easeOut" }}
+                />
+                <motion.p
+                  className="text-sm md:text-base tracking-[0.3em] uppercase font-light"
+                  style={{ color: "hsl(210 30% 60%)" }}
+                  initial={{ opacity: 0 }}
+                  animate={phase >= 2 ? { opacity: 1 } : {}}
+                  transition={{ delay: 0.6, duration: 0.8 }}
+                >
+                  Pueblo Magico de Hidalgo
+                </motion.p>
+              </motion.div>
+
+              {/* Audio Equalizer & Waveform Visualizer */}
+              <motion.div
+                initial={{ opacity: 0, scaleY: 0.3 }}
+                animate={phase >= 2 ? { opacity: 1, scaleY: 1 } : {}}
+                transition={{ duration: 0.8, delay: 0.8, ease: "easeOut" }}
+                className="relative z-10 mb-4 flex flex-col items-center gap-1"
+              >
+                <AudioEqualizer analyser={analyser} />
+                <AudioWaveform analyser={analyser} />
+                {/* Label */}
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={phase >= 2 ? { opacity: 0.45 } : {}}
+                  transition={{ delay: 1.2, duration: 0.6 }}
+                  className="text-[9px] tracking-[0.35em] uppercase mt-2"
+                  style={{ color: "hsl(210 40% 55%)" }}
+                >
+                  Isabella - Tu Guia Digital
+                </motion.p>
+              </motion.div>
+
+              {/* Tagline - Isabella's voice */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={phase >= 3 ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 1.2, ease: "easeOut" }}
+                className="text-center relative z-10 max-w-2xl px-6"
+              >
+                <p className="text-base md:text-lg font-light leading-relaxed mb-1" style={{ color: "hsl(43 55% 72%)" }}>
+                  "Servicios de altura para sus visitantes"
+                </p>
+                <p className="text-sm italic tracking-wide" style={{ color: "hsl(0 0% 50%)" }}>
+                  Bienvenidos a RDM Digital
+                </p>
+              </motion.div>
+
+              {/* Feature images carousel */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={phase >= 4 ? { opacity: 1 } : {}}
+                transition={{ duration: 1 }}
+                className="absolute bottom-28 z-10 flex gap-4 justify-center"
+              >
+                {[
+                  { src: "/images/realito-pasterias.png", label: "Gastronomia" },
+                  { src: "/images/realito-platerias.png", label: "Artesanias" },
+                  { src: "/images/realito-sanitarios.png", label: "Servicios" },
+                ].map((item, i) => (
+                  <motion.div
+                    key={item.label}
+                    initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                    animate={phase >= 4 ? { opacity: 1, y: 0, scale: 1 } : {}}
+                    transition={{ duration: 0.6, delay: i * 0.15 }}
+                    className="relative group"
+                  >
+                    <div 
+                      className="w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden"
+                      style={{
+                        border: "1px solid hsla(210,100%,70%,0.3)",
+                        boxShadow: "0 0 20px hsla(210,100%,60%,0.2)"
+                      }}
+                    >
+                      <img src={item.src} alt={item.label} className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-[8px] md:text-[9px] text-center mt-1 tracking-wider uppercase" style={{ color: "hsl(210 50% 60%)" }}>
+                      {item.label}
+                    </p>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* Bottom tagline */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={phase >= 3 ? { opacity: 1 } : {}}
+                transition={{ duration: 0.8, delay: 0.5 }}
+                className="absolute bottom-16 z-10 text-center"
+              >
+                <p className="text-[10px] md:text-xs tracking-[0.4em] uppercase" style={{ color: "hsl(210 40% 50%)" }}>
+                  Innovacion Turistica Inteligente
+                </p>
+              </motion.div>
+
+              {/* Skip button */}
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={phase >= 1 ? { opacity: 0.6 } : {}}
+                whileHover={{ opacity: 1, scale: 1.05 }}
+                onClick={handleSkip}
+                className="absolute bottom-6 right-6 z-50 px-4 py-2 rounded-full text-[10px] tracking-widest uppercase transition-all"
+                style={{
+                  background: "hsla(0,0%,100%,0.05)",
+                  border: "1px solid hsla(0,0%,100%,0.15)",
+                  color: "hsl(0 0% 60%)",
+                }}
+              >
+                Saltar (Esc)
+              </motion.button>
+            </>
+          )}
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 }

@@ -40,9 +40,14 @@ const Footer = () => {
   };
 
   return (
-    <footer style={{ background: "linear-gradient(180deg, hsl(220,45%,6%) 0%, hsl(220,50%,3%) 100%)" }}>
+    <footer className="relative" style={{ background: "linear-gradient(180deg, hsl(220,45%,6%) 0%, hsl(220,50%,3%) 100%)" }}>
+      {/* Ambient glow orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full bg-[hsla(210,100%,55%,0.03)] blur-3xl animate-orb" />
+        <div className="absolute bottom-20 right-1/4 w-48 h-48 rounded-full bg-[hsla(43,80%,55%,0.03)] blur-3xl animate-orb-reverse" />
+      </div>
       {/* Top decorative line */}
-      <div className="h-px w-full" style={{ background: "linear-gradient(90deg, transparent, hsl(210,100%,55%), hsl(43,80%,55%), transparent)" }} />
+      <div className="separator-animated w-full" />
       
       <div className="container mx-auto px-4 md:px-8 py-16">
         <div className="grid md:grid-cols-5 gap-10">

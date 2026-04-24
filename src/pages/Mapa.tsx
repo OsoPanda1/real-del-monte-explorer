@@ -1,13 +1,17 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Star, Award, Phone, X, Filter, Navigation, Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { lazy, Suspense, useMemo, useState } from "react";
+import { Award, Filter, Layers, LocateFixed, MapPin, Phone, Radar, Search, Star, Zap, Compass, Activity, Cpu, DatabaseZap, Workflow } from "lucide-react";
+import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
-import { SEOMeta, PAGE_SEO } from "@/components/SEOMeta";
+import GradientSeparator from "@/components/GradientSeparator";
+import { PAGE_SEO, SEOMeta } from "@/components/SEOMeta";
+import { AuroraBackground } from "@/components/VisualEffects";
+import { Link } from "react-router-dom";
+import { Map2DPanel } from "@/components/map/Map2DPanel";
+import { MapSyncProvider, useMapSync } from "@/hooks/useMapSync";
+import type { MapMarkerData, MarkerType } from "@/features/places/mapTypes";
+import { buildRecommendedActions, buildTwinOverlaySummary, synthesizeTwinSignals } from "@/features/twins/hybridTwin";
 
 import pasteImg from "@/assets/paste.webp";
 import minaImg from "@/assets/mina-acosta.webp";
@@ -15,382 +19,471 @@ import panteonImg from "@/assets/panteon-ingles.webp";
 import penasImg from "@/assets/penas-cargadas.webp";
 import callesImg from "@/assets/calles-colonial.webp";
 
-interface MapMarkerData {
-  id: string;
-  name: string;
-  category: string;
-  lat: number;
-  lng: number;
-  description: string;
-  image: string;
-  type: "place" | "business";
-  isPremium?: boolean;
-  rating?: number;
-  phone?: string;
-}
+const Map3DTwin = lazy(() => import("@/components/map/Map3DTwin").then((module) => ({ default: module.Map3DTwin })));
 
 const markers: MapMarkerData[] = [
-  { id: "1", name: "Museo de Sitio Mina de Acosta", category: "Mina", lat: 20.1410, lng: -98.6720, description: "Museo de historia minera con herramientas antiguas, fotos y visitas guiadas a túneles de 400 m. Horario: 9:30-17:30 (mart-sáb).", image: minaImg, type: "place", rating: 4.8 },
-  { id: "2", name: "Panteón Inglés", category: "Museo", lat: 20.0800, lng: -98.7000, description: "Cementerio histórico con 755 tumbas de mineros británicos, en bosque de oyamel a 2,660 msnm. Pequeño museo incluido.", image: panteonImg, type: "place", rating: 4.7 },
-  { id: "3", name: "Peñas Cargadas", category: "Naturaleza", lat: 20.1500, lng: -98.6600, description: "Formaciones rocosas gigantes en equilibrio imposible. Senderismo con vistas panorámicas del valle.", image: penasImg, type: "place", rating: 4.9 },
-  { id: "4", name: "Parroquia de Nuestra Señora de la Asunción", category: "Iglesia", lat: 20.12928, lng: -98.72996, description: "Iglesia principal en la Plaza Juárez, emblemática del centro histórico con arquitectura colonial.", image: callesImg, type: "place", rating: 4.7 },
-  { id: "5", name: "Museo del Paste", category: "Museo", lat: 20.1375, lng: -98.6740, description: "Historia del paste, su origen inglés y cómo se convirtió en el platillo emblemático de Real del Monte.", image: pasteImg, type: "place", rating: 4.6 },
-  { id: "6", name: "Museo de Medicina Laboral", category: "Museo", lat: 20.1385, lng: -98.6728, description: "Antiguo hospital de 1908 que muestra enfermedades y tratamientos de mineros. Horario: 9:30-17:30.", image: callesImg, type: "place", rating: 4.5 },
-  { id: "7", name: "Santuario del Señor de Zelontla", category: "Iglesia", lat: 20.1360, lng: -98.6745, description: "Templo con detalles fotogénicos y vestimenta del Cristo Minero.", image: callesImg, type: "place", rating: 4.4 },
-  { id: "8", name: "Plaza Principal", category: "Cultura", lat: 20.1380, lng: -98.6735, description: "Corazón del pueblo con portales, fuentes y edificios de aire inglés.", image: callesImg, type: "place", rating: 4.5 },
-  { id: "9", name: "Callejón de los Artistas", category: "Cultura", lat: 20.1377, lng: -98.6730, description: "Exhibe fotos de producciones cinematográficas, con vistas panorámicas.", image: callesImg, type: "place", rating: 4.3 },
-  { id: "10", name: "Iglesia de la Santa Veracruz", category: "Iglesia", lat: 20.1390, lng: -98.6738, description: "Iglesia histórica vinculada al patrimonio religioso de Real del Monte.", image: callesImg, type: "place", rating: 4.3 },
-  { id: "11", name: "Pastes El Portal", category: "Pastes", lat: 20.1378, lng: -98.6738, description: "Los pastes más tradicionales desde 1985.", image: pasteImg, type: "business", isPremium: true, rating: 4.9, phone: "771 123 4567" },
-  { id: "12", name: "Hotel Real de Minas", category: "Hospedaje", lat: 20.1395, lng: -98.6750, description: "Hotel boutique en casona colonial restaurada.", image: callesImg, type: "business", isPremium: true, rating: 4.7, phone: "771 234 5678" },
-  { id: "13", name: "Artesanías del Monte", category: "Souvenir", lat: 20.1365, lng: -98.6725, description: "Artesanías locales hechas a mano con técnicas tradicionales.", image: callesImg, type: "business", isPremium: true, rating: 4.6, phone: "771 345 6789" },
-  { id: "14", name: "Café La Neblina", category: "Restaurante", lat: 20.1382, lng: -98.6742, description: "Café artesanal de altura con vista al bosque.", image: panteonImg, type: "business", isPremium: false, rating: 4.4 },
-  { id: "15", name: "Tours Mineros RDM", category: "Tours", lat: 20.1415, lng: -98.6715, description: "Recorridos guiados por las minas históricas.", image: minaImg, type: "business", isPremium: true, rating: 4.8, phone: "771 456 7890" },
+  { id: "1", name: "Mina de Acosta", category: "Mina", lat: 20.141, lng: -98.672, description: "Museo y túneles históricos de minería con experiencias guiadas inmersivas.", image: minaImg, type: "place", rating: 4.8, status: "Verificado" },
+  { id: "2", name: "Panteón Inglés", category: "Museo", lat: 20.08, lng: -98.7, description: "Patrimonio británico en el bosque con recorridos narrados por audio-guía.", image: panteonImg, type: "place", rating: 4.7, status: "Activo" },
+  { id: "3", name: "Peñas Cargadas", category: "Naturaleza", lat: 20.15, lng: -98.66, description: "Formaciones rocosas y senderismo panorámico para ecoturismo de aventura.", image: penasImg, type: "place", rating: 4.9, status: "En alta demanda" },
+  { id: "4", name: "Plaza Principal", category: "Cultura", lat: 20.138, lng: -98.6735, description: "Centro social y turístico del pueblo con eventos culturales diarios.", image: callesImg, type: "place", rating: 4.5, status: "Activo" },
+  { id: "5", name: "Museo del Paste", category: "Museo", lat: 20.1375, lng: -98.674, description: "Historia del paste y su herencia cornish con talleres gastronómicos.", image: pasteImg, type: "place", rating: 4.6, status: "Verificado" },
+  { id: "6", name: "Pastes El Portal", category: "Pastes", lat: 20.1378, lng: -98.6738, description: "Pastes tradicionales en el centro histórico y menú digital actualizado.", image: pasteImg, type: "business", isPremium: true, rating: 4.9, phone: "771 123 4567", status: "En alta demanda" },
+  { id: "7", name: "Hotel Real de Minas", category: "Hospedaje", lat: 20.1395, lng: -98.675, description: "Hospedaje boutique en casona colonial con check-in inteligente.", image: callesImg, type: "business", isPremium: true, rating: 4.7, phone: "771 234 5678", status: "Verificado" },
+  { id: "8", name: "Café La Neblina", category: "Restaurante", lat: 20.1382, lng: -98.6742, description: "Café de altura con ambiente local y reservación express.", image: panteonImg, type: "business", rating: 4.4, status: "Activo" },
 ];
 
-// Futuristic glowing icon factory
-const createIcon = (type: "place" | "business", isPremium?: boolean) => {
-  const color = isPremium ? "#fbbf24" : type === "place" ? "#60a5fa" : "#34d399";
-  const glow = isPremium ? "0 0 20px #fbbf24, 0 0 40px #fbbf24" : `0 0 15px ${color}`;
-  const size = isPremium ? 42 : 32;
-  return L.divIcon({
-    className: "custom-marker-futuristic",
-    html: `<div style="
-      width: ${size}px; height: ${size}px;
-      background: rgba(15, 23, 42, 0.8);
-      border-radius: 50%;
-      border: 2px solid ${color};
-      box-shadow: ${glow};
-      display: flex; align-items: center; justify-content: center;
-      backdrop-filter: blur(4px);
-      transition: all 0.3s ease;
-    ">
-      <div style="
-        width: ${size * 0.4}px; height: ${size * 0.4}px;
-        background: ${color};
-        border-radius: 50%;
-        box-shadow: 0 0 10px ${color};
-      "></div>
-    </div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    popupAnchor: [0, -size / 2],
-  });
-};
+function MapaPageContent() {
+  const [filter, setFilter] = useState<"all" | MarkerType>("all");
+  const [selected, setSelected] = useState<MapMarkerData | null>(markers[0]);
+  const [query, setQuery] = useState("");
+  const [mode, setMode] = useState<"2d" | "3d">("2d");
+  const { viewport, syncFrom2D, syncFrom3D } = useMapSync();
 
-// Component to handle drone flight animation
-function MapController({ selected, markers }: { selected: MapMarkerData | null, markers: MapMarkerData[] }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (selected) {
-      // Fly to selected marker (Drone effect)
-      map.flyTo([selected.lat, selected.lng], 17, {
-        duration: 2,
-        easeLinearity: 0.25
-      });
-    } else if (markers.length > 0) {
-      const bounds = L.latLngBounds(markers.map((m) => [m.lat, m.lng]));
-      map.flyToBounds(bounds, { padding: [40, 40], duration: 1.5 });
-    }
-  }, [selected, markers, map]);
-  
-  return null;
-}
+  const handleFilterChange = (nextFilter: MarkerType | "all") => {
+    setFilter(nextFilter);
+    setSelected((current) => {
+      if (!current) return null;
+      if (nextFilter === "all") return current;
+      return current.type === nextFilter ? current : null;
+    });
+  };
 
-const MapaPage = () => {
-  const [selected, setSelected] = useState<MapMarkerData | null>(null);
-  const [filter, setFilter] = useState<"all" | "place" | "business">("all");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const pageSize = 6;
+  const filtered = useMemo(
+    () =>
+      markers.filter((item) => {
+        const byType = filter === "all" || item.type === filter;
+        const byQuery = `${item.name} ${item.category} ${item.description}`
+          .toLowerCase()
+          .includes(query.toLowerCase().trim());
+        return byType && byQuery;
+      }),
+    [filter, query],
+  );
 
-  const filtered = markers.filter((m) => {
-    const byType = filter === "all" ? true : m.type === filter;
-    const bySearch =
-      search.trim().length === 0 ||
-      m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.category.toLowerCase().includes(search.toLowerCase());
+  const stats = useMemo(
+    () => [
+      { label: "Nodos activos", value: filtered.length.toString(), icon: Radar },
+      {
+        label: "Comercios premium",
+        value: filtered.filter((item) => item.isPremium).length.toString(),
+        icon: Zap,
+      },
+      {
+        label: "Calificación promedio",
+        value: `${(
+          filtered.reduce((sum, current) => sum + (current.rating ?? 0), 0) /
+          Math.max(filtered.length, 1)
+        ).toFixed(1)}`,
+        icon: Star,
+      },
+    ],
+    [filtered],
+  );
 
-    return byType && bySearch;
-  });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const twinSignals = useMemo(() => synthesizeTwinSignals(filtered), [filtered]);
+  const twinSummary = useMemo(() => buildTwinOverlaySummary(twinSignals), [twinSignals]);
+  const suggestedActions = useMemo(() => buildRecommendedActions(twinSummary), [twinSummary]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [filter, search]);
+  const integrationReferences = [
+    { label: "Eclipse Ditto", url: "https://github.com/eclipse-ditto/ditto" },
+    { label: "Underrun (simulación inmersiva)", url: "https://github.com/phoboslab/underrun" },
+    { label: "OpenTwins", url: "https://github.com/ertis-research/opentwins" },
+    { label: "Awesome Digital Twins", url: "https://github.com/edt-community/awesome-digital-twins" },
+    { label: "SmartHotel360 IoT", url: "https://github.com/microsoft/SmartHotel360-IoT" },
+    { label: "Forge Digital Twin", url: "https://github.com/Autodesk-Forge/forge-digital-twin" },
+  ] as const;
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-slate-950 text-slate-200">
-        <SEOMeta {...PAGE_SEO.mapa} />
+      <SEOMeta {...PAGE_SEO.mapa} />
+      <div className="min-h-screen bg-night-900 text-silver-300">
         <Navbar />
-        <div className="pt-24 pb-20">
-          <div className="container mx-auto px-4 md:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-8"
-            >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-mono uppercase tracking-widest mb-4">
-                <Navigation className="w-3 h-3" />
-                Sistema de Navegación 3.0
-              </div>
-              <h1 className="font-serif text-4xl md:text-5xl font-bold text-white mb-3 tracking-tight">
-                Mapa Interactivo
-              </h1>
-              <p className="text-slate-400 max-w-lg">
-                Explora Real del Monte a través de nuestra interfaz holográfica. Selecciona puntos para iniciar el vuelo táctico.
-              </p>
-            </motion.div>
 
-            {/* Filters */}
-            <div className="mb-4 flex flex-wrap gap-3">
-              {[
-                { key: "all", label: "Señal Global", count: markers.length },
-                { key: "place", label: "Puntos Históricos", count: markers.filter(m => m.type === "place").length },
-                { key: "business", label: "Sector Comercial", count: markers.filter(m => m.type === "business").length },
-              ].map((f) => (
+        <main className="mx-auto max-w-7xl px-4 pb-12 pt-24 md:px-6">
+          <header className="mb-6 rounded-2xl border border-white/10 bg-night-800/70 p-5">
+            <h1 className="font-serif text-3xl text-gold-400">Mapa inteligente de Real del Monte</h1>
+            <p className="mt-2 text-sm text-silver-500">Mapa funcional con selección de puntos, enfoque automático y panel de detalles sin superposición.</p>
+          </header>
+
+          <div className="mb-4 flex flex-wrap gap-2">
+            {[{ key: "all", label: "Todo" }, { key: "place", label: "Lugares" }, { key: "business", label: "Comercios" }].map((item) => (
+              <button
+                key={item.key}
+                onClick={() => { setFilter(item.key as "all" | MarkerType); setSelected(null); }}
+                className={`rounded-full border px-4 py-2 text-sm ${filter === item.key ? "border-gold-500 bg-gold-500/20 text-gold-300" : "border-white/10 bg-white/5 text-silver-400 hover:bg-white/10"}`}
+              >
+                <Filter className="mr-1 inline h-3.5 w-3.5" /> {item.label}
+              </button>
+            ))}
+          </div>
+
+          <section className="grid gap-4 lg:grid-cols-12">
+            <div className="overflow-hidden rounded-2xl border border-white/10 lg:col-span-8">
+              <MapContainer center={[20.1374, -98.6732]} zoom={14} className="h-[420px] w-full md:h-[640px]" zoomControl>
+                <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <MapFocus selected={selected} />
+                {filtered.map((marker) => (
+                  <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={createIcon(marker.type, marker.isPremium)} eventHandlers={{ click: () => setSelected(marker) }}>
+                    <Popup>
+                      <strong>{marker.name}</strong>
+                      <p>{marker.description}</p>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </div>
+
+            <aside className="space-y-4 lg:col-span-4">
+              <div className="rounded-2xl border border-white/10 bg-night-800/70 p-4">
+                {selected ? (
+                  <>
+                    <img src={selected.image} alt={selected.name} className="mb-3 h-36 w-full rounded-lg object-cover" />
+                    <h2 className="text-lg font-semibold text-silver-200">{selected.name}</h2>
+                    <p className="mt-2 text-sm text-silver-500">{selected.description}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-silver-400">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1"><MapPin className="h-3.5 w-3.5" /> {selected.category}</span>
+                      {selected.rating && <span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 text-gold-400" /> {selected.rating}</span>}
+                      {selected.isPremium && <span className="inline-flex items-center gap-1 text-gold-400"><Award className="h-3.5 w-3.5" /> Premium</span>}
+                    </div>
+                    {selected.phone && (
+                      <a href={`tel:${selected.phone}`} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gold-500 px-3 py-2 text-sm font-medium text-night-900">
+                        <Phone className="h-4 w-4" /> Llamar
+                      </a>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-silver-500">Selecciona un punto del mapa para ver detalles.</p>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-night-800/70 p-3">
+                <p className="mb-2 text-xs text-silver-500">Directorio visible en mapa ({filtered.length})</p>
+                <div className="max-h-40 space-y-2 overflow-auto">
+                  {filtered.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setSelected(item)}
+                      className={`w-full rounded-lg px-3 py-2 text-left text-sm ${selected?.id === item.id ? "bg-gold-500/20 text-gold-300" : "bg-white/5 text-silver-400 hover:bg-white/10"}`}
+                    >
+                      {item.name}
+                    </button>
+      <div className="min-h-screen bg-night-900 text-silver-300 cinematic-gradient">
+        <Navbar />
+
+        {/* Immersive Hero */}
+        <section className="relative overflow-hidden pt-24 pb-10">
+          <div className="absolute inset-0 bg-cover bg-center opacity-15" style={{ backgroundImage: `url(${callesImg})` }} />
+          <div className="absolute inset-0 bg-gradient-to-b from-night-900/80 via-night-900/70 to-night-900" />
+          <AuroraBackground />
+          <div className="dust-particles" />
+
+          <div className="relative mx-auto max-w-7xl px-4 py-12 md:px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+            >
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.2em] backdrop-blur-sm">
+                  <Compass className="h-3.5 w-3.5 text-gold-400" />
+                  <span>Gemelo Digital en Tiempo Real</span>
+                </div>
+                <h1 className="font-serif text-4xl md:text-6xl leading-tight">
+                  <span className="block">Mapa</span>
+                  <span
+                    className="block animate-gradient-text text-glow-gold"
+                    style={{
+                      backgroundImage: "linear-gradient(135deg, hsl(43,80%,55%) 0%, hsl(35,70%,65%) 25%, hsl(43,80%,55%) 50%, hsl(25,60%,50%) 75%, hsl(43,80%,55%) 100%)",
+                      backgroundSize: "200% 200%",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    }}
+                  >
+                    Inteligente
+                  </span>
+                </h1>
+                <p className="max-w-2xl text-base text-silver-400 md:text-lg leading-relaxed">
+                  Infraestructura cartografica con clustering dinamico, sincronizacion 2D/3D y visual neblinoso cinematografico.
+                </p>
+              </div>
+              <div className="inline-flex rounded-full border border-white/15 bg-white/5 p-1 text-xs">
                 <button
-                  key={f.key}
-                  onClick={() => {
-                    setFilter(f.key as typeof filter);
-                    setSelected(null);
-                  }}
-                  className={`px-5 py-2.5 rounded-lg text-sm font-mono tracking-wide transition-all duration-300 flex items-center gap-2 border ${
-                    filter === f.key
-                      ? "bg-blue-600/20 border-blue-500 text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
-                      : "bg-slate-900/50 border-slate-800 text-slate-400 hover:bg-slate-800/50 hover:border-slate-700"
-                  }`}
+                  onClick={() => setMode("2d")}
+                  className={`rounded-full px-4 py-2 transition ${mode === "2d" ? "bg-gold-500 text-night-900" : "text-silver-300 hover:bg-white/10"}`}
                 >
-                  {f.label}
-                  <span className="text-xs opacity-50">[{f.count}]</span>
+                  Vista 2D
                 </button>
+                <button
+                  onClick={() => setMode("3d")}
+                  className={`rounded-full px-4 py-2 transition ${mode === "3d" ? "bg-gold-500 text-night-900" : "text-silver-300 hover:bg-white/10"}`}
+                >
+                  Gemelo 3D
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        <GradientSeparator animated />
+
+        <main className="mx-auto max-w-7xl space-y-5 px-4 pb-12 md:px-6">
+
+          <section className="grid gap-4 md:grid-cols-3">
+            {stats.map((item) => (
+              <div key={item.label} className="glass-dark rounded-2xl border border-white/10 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-white/5 p-2">
+                    <item.icon className="h-5 w-5 text-gold-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-silver-500">{item.label}</p>
+                    <p className="text-xl font-semibold text-silver-200">{item.value}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </section>
+
+          <section className="grid gap-6 lg:grid-cols-12">
+            <div className="space-y-4 lg:col-span-8">
+              <div className="glass-dark rounded-2xl border border-white/10 p-4">
+                <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+                  <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-night-800/80 px-3 py-2">
+                    <Search className="h-4 w-4 text-silver-500" />
+                    <input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Buscar lugares, comercios o experiencias..."
+                      className="w-full bg-transparent text-sm text-silver-200 outline-none placeholder:text-silver-500"
+                    />
+                  </div>
+                  <button
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                      filter === "place"
+                        ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                        : "border-white/10 bg-white/5 text-silver-300 hover:border-white/20"
+                    }`}
+                    onClick={() => handleFilterChange("place")}
+                  >
+                    <Filter className="h-4 w-4" /> Lugares
+                  </button>
+                  <button
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                      filter === "business"
+                        ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                        : "border-white/10 bg-white/5 text-silver-300 hover:border-white/20"
+                    }`}
+                    onClick={() => handleFilterChange("business")}
+                  >
+                    <Layers className="h-4 w-4" /> Negocios
+                  </button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  {["all", "place", "business"].map((item) => (
+                    <button
+                      key={item}
+                      onClick={() => handleFilterChange(item as "all" | MarkerType)}
+                      className={`rounded-full border px-3 py-1.5 ${
+                        filter === item
+                          ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                          : "border-white/10 bg-white/5 text-silver-400 hover:border-white/20"
+                      }`}
+                    >
+                      {item === "all" ? "Todo" : item === "place" ? "Lugares" : "Negocios"}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="rounded-2xl border bg-card p-4 space-y-3">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" /> Reglas de menciones comerciales por zona
+                  </p>
+                  {zoneMentions.map(({ policy, allowed, overflow }) => (
+                    <div key={policy.zone} className="rounded-xl border bg-background p-3">
+                      <p className="text-sm font-semibold">{policy.zone}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Máx. {policy.maxMentionsPerFeed} menciones · enfriamiento {policy.cooldownMinutes} min · {policy.fairnessWeight}</p>
+                      <p className="text-xs mt-1">Activas: {allowed.length}{overflow > 0 ? ` · retenidas por regla: ${overflow}` : ""}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-white/10">
+                {mode === "2d" ? (
+                  <Map2DPanel
+                    markers={filtered}
+                    selected={selected}
+                    viewport={viewport}
+                    onSelect={setSelected}
+                    onViewportChange={syncFrom2D}
+                  />
+                ) : (
+                  <Suspense
+                    fallback={
+                      <div className="flex h-[420px] items-center justify-center bg-night-900/70 text-sm text-silver-400 md:h-[640px]">
+                        Cargando Gemelo Digital 3D...
+                      </div>
+                    }
+                  >
+                    <Map3DTwin viewport={viewport} markers={filtered} onViewportChange={syncFrom3D} />
+                  </Suspense>
+                )}
+              </div>
+            </div>
+
+            <aside className="space-y-4 lg:col-span-4">
+              <div className="glass-dark rounded-2xl border border-white/10 p-4">
+                {selected ? (
+                  <>
+                    <img src={selected.image} alt={selected.name} className="mb-3 h-40 w-full rounded-xl object-cover" />
+                    <h2 className="text-xl font-semibold text-silver-200">{selected.name}</h2>
+                    <p className="mt-2 text-sm text-silver-400">{selected.description}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-silver-400">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+                        <MapPin className="h-3.5 w-3.5" /> {selected.category}
+                      </span>
+                      {selected.rating && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gold-500/10 px-2 py-1 text-gold-300">
+                          <Star className="h-3.5 w-3.5" /> {selected.rating}
+                        </span>
+                      )}
+                      {selected.isPremium && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-electric-500/10 px-2 py-1 text-gold-300">
+                          <Award className="h-3.5 w-3.5" /> Premium
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-emerald-300">
+                        <Layers className="h-3.5 w-3.5" /> {selected.status}
+                      </span>
+                    </div>
+                    <div className="mt-4 flex flex-col gap-2">
+                      {selected.phone && (
+                        <a
+                          href={`tel:${selected.phone}`}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gold-500 px-3 py-2 text-sm font-medium text-night-900"
+                        >
+                          <Phone className="h-4 w-4" /> Llamar
+                        </a>
+                      )}
+                      <button
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm font-medium text-silver-200 hover:bg-white/10"
+                        onClick={() => setSelected(markers[0])}
+                      >
+                        <LocateFixed className="h-4 w-4" /> Volver al nodo principal
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-silver-500">Selecciona un punto del mapa para ver detalles.</p>
+                )}
+              </div>
+
+              <div className="glass-dark rounded-2xl border border-gold-500/30 p-4">
+                <h3 className="font-semibold text-gold-300">Exploración rápida</h3>
+                <ul className="mt-3 space-y-2 text-sm text-silver-400">
+                  {filtered.slice(0, 4).map((item) => (
+                    <li key={item.id}>
+                      <button
+                        onClick={() => setSelected(item)}
+                        className="flex w-full items-center justify-between rounded-lg border border-white/10 px-3 py-2 text-left transition hover:border-gold-500/40 hover:bg-white/5"
+                      >
+                        <span>{item.name}</span>
+                        <span className="text-xs text-gold-300">Ver</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="rounded-2xl border border-gold-500/30 bg-gold-500/10 p-4">
+                <h3 className="font-semibold text-gold-300">Capa Realito AI (Plan de implementación)</h3>
+                <ol className="mt-2 list-decimal space-y-1 pl-4 text-sm text-silver-400">
+                  <li>Asistente contextual por POI con intentos de ruta, horario y compra.</li>
+                  <li>Streaming geoespacial de eventos por WebSocket federado.</li>
+                  <li>Sugerencias proactivas según densidad, clima y perfil de visitante.</li>
+                </ol>
+                <Link to="/negocios" className="mt-3 inline-block rounded-lg bg-gold-500 px-3 py-2 text-sm font-semibold text-night-900">
+                  Ir al portal de comercios
+                </Link>
+              </div>
+            </aside>
+          </section>
+
+          <section className="space-y-4 rounded-2xl border border-white/10 bg-night-900/70 p-4 md:p-6">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-silver-500">Integración híbrida</p>
+                <h2 className="text-2xl font-semibold text-silver-100">Control Room de Gemelos Digitales</h2>
+                <p className="mt-2 text-sm text-silver-400">Pipeline unificado para telemetría, modelos BIM/3D y simulaciones inmersivas con fallback para Lovable.</p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-silver-300">
+                <Workflow className="h-3.5 w-3.5 text-gold-300" />
+                Modo federado activo
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+              {twinSummary.map((source) => (
+                <article key={source.source} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-xs text-silver-400">{source.displayName}</p>
+                  <p className="mt-1 text-lg font-semibold text-silver-100">{source.healthScore}%</p>
+                  <p className="text-xs text-silver-400">Salud operativa</p>
+                  <div className="mt-2 space-y-1 text-xs text-silver-400">
+                    <p className="flex items-center gap-1"><Activity className="h-3 w-3 text-emerald-300" /> {source.throughputPerMinute}/min</p>
+                    <p className="flex items-center gap-1"><Cpu className="h-3 w-3 text-amber-300" /> {source.avgLatencyMs} ms</p>
+                    <p className="flex items-center gap-1"><DatabaseZap className="h-3 w-3 text-rose-300" /> {source.incidents} incidentes</p>
+                  </div>
+                </article>
               ))}
             </div>
 
-            <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <label className="relative w-full md:max-w-sm">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar por nombre o categoría..."
-                  className="w-full rounded-lg border border-slate-800 bg-slate-900/70 py-2 pl-10 pr-3 text-sm text-slate-200 outline-none focus:border-blue-500/50"
-                />
-              </label>
-              <p className="text-xs font-mono uppercase tracking-wider text-slate-500">
-                Mostrando {filtered.length} objetivos tácticos
-              </p>
-            </div>
-
-            {/* Map + HUD Sidebar */}
-            <div className="grid lg:grid-cols-12 gap-6 h-[70vh] min-h-[600px]">
-              {/* HUD Map Container */}
-              <div className="lg:col-span-8 lg:col-start-1 relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-900 shadow-2xl">
-                {/* HUD Elements */}
-                <div className="absolute inset-0 pointer-events-none z-[400] rounded-2xl border-[1px] border-blue-500/20" />
-                <div className="absolute top-4 left-4 pointer-events-none z-[400]">
-                  <div className="w-16 h-16 border-t-2 border-l-2 border-blue-500/40 rounded-tl-xl" />
-                </div>
-                <div className="absolute bottom-4 right-4 pointer-events-none z-[400]">
-                  <div className="w-16 h-16 border-b-2 border-r-2 border-blue-500/40 rounded-br-xl" />
-                </div>
-                <div className="absolute top-4 right-4 pointer-events-none z-[400] text-blue-500/40 font-mono text-[10px] text-right">
-                  <p>LAT: 20.1395° N</p>
-                  <p>LNG: 98.6735° W</p>
-                  <p>ALT: 2,660m</p>
-                </div>
-                <div className="absolute inset-0 pointer-events-none z-[400] bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(2,6,23,0.4)_100%)]" />
-
-                <MapContainer
-                  center={[20.1395, -98.6735]}
-                  zoom={15}
-                  scrollWheelZoom={true}
-                  style={{ width: "100%", height: "100%", background: "#020617" }}
-                  zoomControl={false}
-                >
-                  {/* Dark matter tileset for futuristic look */}
-                  <TileLayer
-                    attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                  />
-                  <MapController selected={selected} markers={filtered} />
-                  
-                  {filtered.map((marker) => (
-                    <Marker
-                      key={marker.id}
-                      position={[marker.lat, marker.lng]}
-                      icon={createIcon(marker.type, marker.isPremium)}
-                      eventHandlers={{
-                        click: () => setSelected(marker),
-                      }}
-                    >
-                      {/* Hidden popup as we use sidebar */}
-                      <Popup className="hidden-popup">
-                        <span className="hidden"></span>
-                      </Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
-              </div>
-
-              {/* HUD Sidebar */}
-              <div className="lg:col-span-4 flex flex-col gap-4 h-full">
-                <AnimatePresence mode="wait">
-                  {selected ? (
-                    <motion.div
-                      key={selected.id}
-                      initial={{ opacity: 0, x: 20, scale: 0.95 }}
-                      animate={{ opacity: 1, x: 0, scale: 1 }}
-                      exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                      className="rounded-2xl overflow-hidden bg-slate-900/80 backdrop-blur-xl border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.15)] flex-shrink-0"
-                    >
-                      <div className="relative h-48 overflow-hidden">
-                        <div className="absolute inset-0 bg-blue-500/20 mix-blend-overlay z-10" />
-                        <img src={selected.image} alt={selected.name} className="w-full h-full object-cover filter contrast-125 saturate-110" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/50 to-transparent z-10" />
-                        
-                        {/* Scanline effect on image */}
-                        <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(59,130,246,0.1)_2px,rgba(59,130,246,0.1)_4px)] z-20 pointer-events-none" />
-
-                        {selected.isPremium && (
-                          <div className="absolute top-3 right-3 z-30 px-3 py-1 rounded border border-amber-500/50 bg-amber-500/20 text-amber-300 text-[10px] font-mono uppercase tracking-widest flex items-center gap-2 backdrop-blur-md shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-                            <Award className="w-3 h-3" /> Verificado
-                          </div>
-                        )}
-                        <div className="absolute top-3 left-3 z-30 px-3 py-1 rounded border border-blue-500/50 bg-blue-500/20 text-blue-300 text-[10px] font-mono uppercase tracking-widest backdrop-blur-md">
-                          {selected.category}
-                        </div>
-                        <button
-                          onClick={() => setSelected(null)}
-                          className="absolute top-3 right-3 z-30 w-8 h-8 rounded border border-slate-500/50 bg-slate-900/50 flex items-center justify-center text-slate-300 hover:bg-slate-800 hover:text-white transition-colors backdrop-blur-md"
-                          style={selected.isPremium ? { right: 120 } : {}}
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="p-6 relative z-30">
-                        <h3 className="font-serif text-2xl font-bold text-white mb-2 tracking-tight">{selected.name}</h3>
-                        {selected.rating && (
-                          <div className="flex items-center gap-2 mb-4">
-                            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                            <span className="text-sm font-mono text-amber-400">{selected.rating}</span>
-                            <span className="text-xs text-slate-500 font-mono">/ 5.0</span>
-                          </div>
-                        )}
-                        <p className="text-sm text-slate-300 leading-relaxed mb-6 font-light">
-                          {selected.description}
-                        </p>
-                        {selected.phone && (
-                          <a href={`tel:${selected.phone}`} className="inline-flex items-center justify-center w-full gap-2 px-4 py-3 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:border-blue-500/50 hover:text-blue-300 transition-all font-mono text-sm tracking-wide">
-                            <Phone className="w-4 h-4" /> 
-                            <span>{selected.phone}</span>
-                          </a>
-                        )}
-                      </div>
-                    </motion.div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-xl border border-gold-500/30 bg-gold-500/10 p-4">
+                <h3 className="font-semibold text-gold-300">Acciones recomendadas</h3>
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-silver-300">
+                  {suggestedActions.length > 0 ? (
+                    suggestedActions.map((action) => <li key={action}>{action}</li>)
                   ) : (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="rounded-2xl border border-slate-800 bg-slate-900/50 backdrop-blur-md p-8 text-center flex flex-col items-center justify-center h-full min-h-[250px]"
-                    >
-                      <div className="w-16 h-16 rounded-full border border-blue-500/30 bg-blue-500/10 flex items-center justify-center mb-4 relative">
-                        <div className="absolute inset-0 rounded-full border border-blue-500/20 animate-ping" />
-                        <MapPin className="w-6 h-6 text-blue-400" />
-                      </div>
-                      <h3 className="text-lg font-mono text-white mb-2 uppercase tracking-widest">Radar Activo</h3>
-                      <p className="text-sm text-slate-400 font-light">
-                        Selecciona un objetivo en el mapa para establecer conexión y ver detalles.
-                      </p>
-                    </motion.div>
+                    <li>Sin alertas críticas; mantener sincronización en tiempo real y simulación calibrada.</li>
                   )}
-                </AnimatePresence>
-
-                {/* Data List */}
-                <div className="flex-1 rounded-2xl border border-slate-800 bg-slate-900/50 backdrop-blur-md overflow-hidden flex flex-col min-h-[200px]">
-                  <div className="p-4 border-b border-slate-800 bg-slate-900">
-                    <h4 className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-500 flex items-center">
-                      <Filter className="w-3 h-3 inline mr-2" />
-                      Directorio de Puntos ({filtered.length})
-                    </h4>
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-                    {paginated.map((m) => (
-                      <button
-                        key={m.id}
-                        onClick={() => setSelected(m)}
-                        className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-all duration-200 flex items-center gap-3 group ${
-                          selected?.id === m.id
-                            ? "bg-blue-600/20 border border-blue-500/30 text-blue-300"
-                            : "hover:bg-slate-800/80 text-slate-300 border border-transparent"
-                        }`}
+                </ul>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <h3 className="font-semibold text-silver-100">Referencias integradas</h3>
+                <ul className="mt-2 space-y-1.5 text-sm text-silver-300">
+                  {integrationReferences.map((reference) => (
+                    <li key={reference.url}>
+                      <a
+                        href={reference.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 text-silver-200 hover:text-gold-300"
                       >
-                        <div className={`w-2 h-2 rounded-full ${m.isPremium ? 'bg-amber-400 shadow-[0_0_8px_#fbbf24]' : 'bg-blue-400 shadow-[0_0_8px_#60a5fa]'} group-hover:scale-150 transition-transform`} />
-                        <span className="truncate font-medium">{m.name}</span>
-                        {m.rating && (
-                          <span className="ml-auto text-xs text-slate-500 font-mono flex items-center gap-1">
-                            <Star className="w-3 h-3 text-amber-500/50" />
-                            {m.rating}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-
-                    {paginated.length === 0 && (
-                      <div className="rounded-xl border border-dashed border-slate-700 p-4 text-center text-xs text-slate-500">
-                        No encontramos puntos para ese filtro/búsqueda.
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between border-t border-slate-800 px-3 py-2 text-xs text-slate-500">
-                    <button
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                      className="inline-flex items-center gap-1 rounded border border-slate-700 px-2 py-1 disabled:opacity-40"
-                    >
-                      <ChevronLeft className="h-3.5 w-3.5" /> Anterior
-                    </button>
-                    <span className="font-mono">Página {page} / {totalPages}</span>
-                    <button
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
-                      className="inline-flex items-center gap-1 rounded border border-slate-700 px-2 py-1 disabled:opacity-40"
-                    >
-                      Siguiente <ChevronRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
+                        <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
+                        {reference.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
-          </div>
-        </div>
+          </section>
+        </main>
+
         <Footer />
       </div>
-      <style dangerouslySetInnerHTML={{__html: `
-        .hidden-popup .leaflet-popup-content-wrapper, 
-        .hidden-popup .leaflet-popup-tip {
-          display: none !important;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(15, 23, 42, 0.5);
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(59, 130, 246, 0.3);
-          border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(59, 130, 246, 0.5);
-        }
-      `}} />
     </PageTransition>
   );
-};
+}
 
-export default MapaPage;
+
+export default function MapaPage() {
+  return (
+    <MapSyncProvider>
+      <MapaPageContent />
+    </MapSyncProvider>
+  );
+}
