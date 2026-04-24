@@ -14,10 +14,10 @@ export interface ContextoCivilizatorio {
 }
 
 export class ChronusEngine {
-  private readonly db: Pool;
-  private readonly pubsub: Redis;
+  private readonly db: QueryableDb;
+  private readonly pubsub: PublishClient;
 
-  constructor(dbPool: Pool, redisClient: Redis) {
+  constructor(dbPool: QueryableDb, redisClient: PublishClient) {
     this.db = dbPool;
     this.pubsub = redisClient;
   }

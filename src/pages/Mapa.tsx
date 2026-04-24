@@ -1,5 +1,5 @@
 import { lazy, Suspense, useMemo, useState } from "react";
-import { Award, Filter, Layers, LocateFixed, MapPin, Phone, Radar, Search, Star, Zap, Compass } from "lucide-react";
+import { Award, Filter, Layers, LocateFixed, MapPin, Phone, Radar, Search, Star, Zap, Compass, Activity, Cpu, DatabaseZap, Workflow } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { Map2DPanel } from "@/components/map/Map2DPanel";
 import { MapSyncProvider, useMapSync } from "@/hooks/useMapSync";
 import type { MapMarkerData, MarkerType } from "@/features/places/mapTypes";
+import { buildRecommendedActions, buildTwinOverlaySummary, synthesizeTwinSignals } from "@/features/twins/hybridTwin";
 
 import pasteImg from "@/assets/paste.webp";
 import minaImg from "@/assets/mina-acosta.webp";
@@ -78,6 +79,20 @@ function MapaPageContent() {
     ],
     [filtered],
   );
+
+
+  const twinSignals = useMemo(() => synthesizeTwinSignals(filtered), [filtered]);
+  const twinSummary = useMemo(() => buildTwinOverlaySummary(twinSignals), [twinSignals]);
+  const suggestedActions = useMemo(() => buildRecommendedActions(twinSummary), [twinSummary]);
+
+  const integrationReferences = [
+    { label: "Eclipse Ditto", url: "https://github.com/eclipse-ditto/ditto" },
+    { label: "Underrun (simulación inmersiva)", url: "https://github.com/phoboslab/underrun" },
+    { label: "OpenTwins", url: "https://github.com/ertis-research/opentwins" },
+    { label: "Awesome Digital Twins", url: "https://github.com/edt-community/awesome-digital-twins" },
+    { label: "SmartHotel360 IoT", url: "https://github.com/microsoft/SmartHotel360-IoT" },
+    { label: "Forge Digital Twin", url: "https://github.com/Autodesk-Forge/forge-digital-twin" },
+  ] as const;
 
   return (
     <PageTransition>
@@ -175,13 +190,21 @@ function MapaPageContent() {
                     />
                   </div>
                   <button
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-silver-300"
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                      filter === "place"
+                        ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                        : "border-white/10 bg-white/5 text-silver-300 hover:border-white/20"
+                    }`}
                     onClick={() => handleFilterChange("place")}
                   >
                     <Filter className="h-4 w-4" /> Lugares
                   </button>
                   <button
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-silver-300"
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                      filter === "business"
+                        ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                        : "border-white/10 bg-white/5 text-silver-300 hover:border-white/20"
+                    }`}
                     onClick={() => handleFilterChange("business")}
                   >
                     <Layers className="h-4 w-4" /> Negocios
@@ -200,6 +223,19 @@ function MapaPageContent() {
                     >
                       {item === "all" ? "Todo" : item === "place" ? "Lugares" : "Negocios"}
                     </button>
+                  ))}
+                </div>
+
+                <div className="rounded-2xl border bg-card p-4 space-y-3">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" /> Reglas de menciones comerciales por zona
+                  </p>
+                  {zoneMentions.map(({ policy, allowed, overflow }) => (
+                    <div key={policy.zone} className="rounded-xl border bg-background p-3">
+                      <p className="text-sm font-semibold">{policy.zone}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Máx. {policy.maxMentionsPerFeed} menciones · enfriamiento {policy.cooldownMinutes} min · {policy.fairnessWeight}</p>
+                      <p className="text-xs mt-1">Activas: {allowed.length}{overflow > 0 ? ` · retenidas por regla: ${overflow}` : ""}</p>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -303,6 +339,66 @@ function MapaPageContent() {
                 </Link>
               </div>
             </aside>
+          </section>
+
+          <section className="space-y-4 rounded-2xl border border-white/10 bg-night-900/70 p-4 md:p-6">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-silver-500">Integración híbrida</p>
+                <h2 className="text-2xl font-semibold text-silver-100">Control Room de Gemelos Digitales</h2>
+                <p className="mt-2 text-sm text-silver-400">Pipeline unificado para telemetría, modelos BIM/3D y simulaciones inmersivas con fallback para Lovable.</p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-silver-300">
+                <Workflow className="h-3.5 w-3.5 text-gold-300" />
+                Modo federado activo
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+              {twinSummary.map((source) => (
+                <article key={source.source} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-xs text-silver-400">{source.displayName}</p>
+                  <p className="mt-1 text-lg font-semibold text-silver-100">{source.healthScore}%</p>
+                  <p className="text-xs text-silver-400">Salud operativa</p>
+                  <div className="mt-2 space-y-1 text-xs text-silver-400">
+                    <p className="flex items-center gap-1"><Activity className="h-3 w-3 text-emerald-300" /> {source.throughputPerMinute}/min</p>
+                    <p className="flex items-center gap-1"><Cpu className="h-3 w-3 text-amber-300" /> {source.avgLatencyMs} ms</p>
+                    <p className="flex items-center gap-1"><DatabaseZap className="h-3 w-3 text-rose-300" /> {source.incidents} incidentes</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-xl border border-gold-500/30 bg-gold-500/10 p-4">
+                <h3 className="font-semibold text-gold-300">Acciones recomendadas</h3>
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-silver-300">
+                  {suggestedActions.length > 0 ? (
+                    suggestedActions.map((action) => <li key={action}>{action}</li>)
+                  ) : (
+                    <li>Sin alertas críticas; mantener sincronización en tiempo real y simulación calibrada.</li>
+                  )}
+                </ul>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <h3 className="font-semibold text-silver-100">Referencias integradas</h3>
+                <ul className="mt-2 space-y-1.5 text-sm text-silver-300">
+                  {integrationReferences.map((reference) => (
+                    <li key={reference.url}>
+                      <a
+                        href={reference.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 text-silver-200 hover:text-gold-300"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
+                        {reference.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </section>
         </main>
 

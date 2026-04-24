@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Map as MapIcon, Activity, Layers, Hexagon } from "lucide-react";
 import { motion } from "framer-motion";
 import { Map2DPanel } from "@/components/map/Map2DPanel";
@@ -52,9 +52,6 @@ export default function MapaView() {
   const [selected, setSelected] = useState<MapMarkerData | null>(null);
 
   const markers = useMemo(() => DEFAULT_MARKERS, []);
-  const handleViewportChange = useCallback((next: Partial<MapViewportState>) => {
-    setViewport((prev) => ({ ...prev, ...next }));
-  }, []);
 
   return (
     <div className="flex flex-col gap-6 p-2">
@@ -91,13 +88,13 @@ export default function MapaView() {
             selected={selected}
             viewport={viewport}
             onSelect={setSelected}
-            onViewportChange={handleViewportChange}
+            onViewportChange={(next) => setViewport((prev) => ({ ...prev, ...next }))}
           />
         ) : (
           <Map3DTwin
             viewport={viewport}
             markers={markers}
-            onViewportChange={handleViewportChange}
+            onViewportChange={(next) => setViewport((prev) => ({ ...prev, ...next }))}
           />
         )}
 

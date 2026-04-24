@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircle, Send, Sparkles, X } from "lucide-react";
-import logoRdm from "@/assets/logo-rdm.png";
 import { ISABELLA_TAMV_PROFILE, TAMV_CAPABILITIES_SUMMARY } from "@/features/ai/isabellaTamvBase";
+
+// Use public image path for REALITO avatar
+const logoRdm = "/images/realito-likes.png";
 
 interface Message {
   id: string;
