@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, ChevronDown, Map, BookOpen, Utensils, Palette, TreePine, Ghost, Clock, Quote, Compass } from "lucide-react";
+import { Menu, X, ChevronDown, Map, BookOpen, Utensils, Palette, TreePine, Ghost, Clock, Quote, Compass, Network } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import logoRdm from "@/assets/logo-rdm-digital.png";
 
@@ -8,6 +8,7 @@ const navItems = [
   { label: "Inicio", path: "/" },
   { label: "Mapa", path: "/mapa", icon: Map },
   { label: "Rutas", path: "/rutas", icon: Compass },
+  { label: "Ecosistema", path: "/ecosistema", icon: Network },
 ];
 
 const discoverItems = [
