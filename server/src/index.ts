@@ -24,6 +24,8 @@ import newsletterRoutes from "./routes/newsletter";
 import paymentsRoutes from "./routes/payments";
 import seoRoutes from "./routes/seo";
 import uploadRoutes from "./routes/upload";
+import ecosystemRoutes from "./routes/ecosystem";
+import federatedRoutes from "./routes/federated";
 
 dotenv.config();
 
@@ -90,6 +92,8 @@ app.use("/api/v1/newsletter", sensitiveLimiter, newsletterRoutes);
 app.use("/api/v1/payments", paymentsRoutes);
 app.use("/api/v1/seo", seoRoutes);
 app.use("/api/v1/upload", uploadRoutes);
+app.use("/api/v1/ecosystem", ecosystemRoutes);
+app.use("/api/v1/federated", sensitiveLimiter, federatedRoutes);
 
 // Legacy routes for backwards compatibility
 app.use("/api/auth", authLimiter, authRoutes);
@@ -107,6 +111,8 @@ app.use("/api/newsletter", sensitiveLimiter, newsletterRoutes);
 app.use("/api/payments", paymentsRoutes);
 app.use("/api/seo", seoRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/ecosystem", ecosystemRoutes);
+app.use("/api/federated", sensitiveLimiter, federatedRoutes);
 
 // Error handling
 app.use(errorHandler);

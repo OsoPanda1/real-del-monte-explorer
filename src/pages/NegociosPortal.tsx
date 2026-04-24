@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
@@ -10,33 +10,36 @@ import { useToast } from "@/components/ui/use-toast";
 import { authApi, businessesApi, paymentsApi } from "@/lib/api";
 
 type PlanType = "monthly" | "yearly";
-type Category = "GASTRONOMIA" | "HOSPEDAJE" | "ARTESANIA" | "PLATERIA" | "BAR" | "COMERCIO" | "SERVICIOS" | "TURISMO" | "OTROS";
 
-const defaultBusiness = { name: "", category: "GASTRONOMIA" as Category, description: "", phone: "", address: "" };
+type Category =
+  | "GASTRONOMIA"
+  | "HOSPEDAJE"
+  | "ARTESANIA"
+  | "PLATERIA"
+  | "BAR"
+  | "COMERCIO"
+  | "SERVICIOS"
+  | "TURISMO"
+  | "OTROS";
 
-export default function NegociosPortalPage() {
+const defaultBusiness = {
+  name: "",
+  category: "GASTRONOMIA" as Category,
+  description: "",
+  phone: "",
+  address: "",
+};
+
+export default function NegociosPortal() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [token, setToken] = useState<string | null>(localStorage.getItem("rdm_token"));
   const [businessId, setBusinessId] = useState("");
-  const [plan, setPlan] = useState<PlanType>("monthly");
-  const [stripeEnabled, setStripeEnabled] = useState<boolean | null>(null);
 
   const [login, setLogin] = useState({ email: "", password: "" });
   const [signup, setSignup] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [business, setBusiness] = useState(defaultBusiness);
+  const [plan, setPlan] = useState<PlanType>("monthly");
 
-  useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        const response = await paymentsApi.getConfig();
-        setStripeEnabled(Boolean(response.data?.stripeEnabled));
-      } catch {
-        setStripeEnabled(false);
-      }
-    };
-    void loadConfig();
-  }, []);
 
   const handleBusinessLogin = async (event: FormEvent) => {
     event.preventDefault();
@@ -45,7 +48,6 @@ export default function NegociosPortalPage() {
       const response = await authApi.login(login);
       localStorage.setItem("rdm_token", response.data.token);
       localStorage.setItem("rdm_user", JSON.stringify(response.data.user));
-      setToken(response.data.token);
       toast({ title: "Sesión iniciada", description: "Acceso de comercio habilitado." });
     } catch (error) {
       toast({ title: "Error", description: error instanceof Error ? error.message : "No se pudo iniciar sesión", variant: "destructive" });
@@ -56,16 +58,29 @@ export default function NegociosPortalPage() {
 
   const handleBusinessSignup = async (event: FormEvent) => {
     event.preventDefault();
+
     if (signup.password !== signup.confirmPassword) {
       toast({ title: "Error", description: "Las contraseñas no coinciden", variant: "destructive" });
       return;
     }
+
     setLoading(true);
     try {
-      const signupResponse = await authApi.signup({ name: signup.name, email: signup.email, password: signup.password, role: "business_owner" });
-      localStorage.setItem("rdm_token", signupResponse.data.token);
-      localStorage.setItem("rdm_user", JSON.stringify(signupResponse.data.user));
-      setToken(signupResponse.data.token);
+      let token = localStorage.getItem("rdm_token");
+      const existingUser = localStorage.getItem("rdm_user");
+
+      if (!token || !existingUser) {
+        const signupResponse = await authApi.signup({
+          name: signup.name,
+          email: signup.email,
+          password: signup.password,
+          role: "business_owner",
+        });
+
+        token = signupResponse.data.token;
+        localStorage.setItem("rdm_token", token);
+        localStorage.setItem("rdm_user", JSON.stringify(signupResponse.data.user));
+      }
 
       const createResponse = await businessesApi.create({
         name: business.name,
@@ -74,10 +89,15 @@ export default function NegociosPortalPage() {
         phone: business.phone || undefined,
         address: business.address || undefined,
       });
+
       setBusinessId(createResponse.data.id);
-      toast({ title: "¡Registro completado!", description: "Negocio creado. Ya puedes pagar plan mensual." });
+      toast({ title: "¡Registro completado!", description: "Tu negocio fue creado. Ya puedes activar el plan mensual." });
     } catch (error) {
-      toast({ title: "Error", description: error instanceof Error ? error.message : "No se pudo registrar", variant: "destructive" });
+      toast({
+        title: "Error al crear negocio",
+        description: error instanceof Error ? error.message : "No se pudo crear el negocio.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -88,6 +108,7 @@ export default function NegociosPortalPage() {
       toast({ title: "Falta businessId", description: "Registra o pega el ID de tu negocio para pagar.", variant: "destructive" });
       return;
     }
+
     setLoading(true);
     try {
       const response = await paymentsApi.createBusinessPremium({ businessId, plan, currency: "mxn" });
@@ -105,15 +126,7 @@ export default function NegociosPortalPage() {
         <Navbar />
         <main className="mx-auto max-w-5xl px-4 pb-16 pt-24 md:px-6">
           <h1 className="font-serif text-3xl text-gold-400">Portal de comercios RDM Digital</h1>
-          <p className="mt-2 text-sm text-silver-500">Registro, login y pagos online para visibilidad de negocios.</p>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-white/10 bg-night-800/60 p-3 text-sm">Plan mensual: <strong>$299 MXN</strong></div>
-            <div className="rounded-xl border border-white/10 bg-night-800/60 p-3 text-sm">Plan anual: <strong>$2,999 MXN</strong></div>
-            <div className={`rounded-xl border p-3 text-sm ${stripeEnabled ? "border-emerald-500/30 bg-emerald-500/10" : "border-amber-500/30 bg-amber-500/10"}`}>
-              Pagos Stripe: <strong>{stripeEnabled ? "Activo" : "No configurado"}</strong>
-            </div>
-          </div>
+          <p className="mt-2 text-sm text-silver-500">Alta de negocios, acceso para comercios y pago online mensual para aparecer en el catálogo.</p>
 
           <div className="mt-6 rounded-2xl border border-white/10 bg-night-800/70 p-4">
             <Tabs defaultValue="signup">
@@ -125,37 +138,80 @@ export default function NegociosPortalPage() {
 
               <TabsContent value="signup" className="mt-4">
                 <form className="grid gap-3 md:grid-cols-2" onSubmit={handleBusinessSignup}>
-                  <div><Label>Nombre del propietario</Label><Input value={signup.name} onChange={(e) => setSignup({ ...signup, name: e.target.value })} required /></div>
-                  <div><Label>Email de acceso</Label><Input type="email" value={signup.email} onChange={(e) => setSignup({ ...signup, email: e.target.value })} required /></div>
-                  <div><Label>Contraseña</Label><Input type="password" value={signup.password} onChange={(e) => setSignup({ ...signup, password: e.target.value })} required minLength={6} /></div>
-                  <div><Label>Confirmar contraseña</Label><Input type="password" value={signup.confirmPassword} onChange={(e) => setSignup({ ...signup, confirmPassword: e.target.value })} required minLength={6} /></div>
-                  <div><Label>Nombre del negocio</Label><Input value={business.name} onChange={(e) => setBusiness({ ...business, name: e.target.value })} required /></div>
+                  <div>
+                    <Label>Nombre del propietario</Label>
+                    <Input value={signup.name} onChange={(e) => setSignup({ ...signup, name: e.target.value })} required />
+                  </div>
+                  <div>
+                    <Label>Email de acceso</Label>
+                    <Input type="email" value={signup.email} onChange={(e) => setSignup({ ...signup, email: e.target.value })} required />
+                  </div>
+                  <div>
+                    <Label>Contraseña</Label>
+                    <Input type="password" value={signup.password} onChange={(e) => setSignup({ ...signup, password: e.target.value })} required minLength={6} />
+                  </div>
+                  <div>
+                    <Label>Confirmar contraseña</Label>
+                    <Input type="password" value={signup.confirmPassword} onChange={(e) => setSignup({ ...signup, confirmPassword: e.target.value })} required minLength={6} />
+                  </div>
+                  <div>
+                    <Label>Nombre del negocio</Label>
+                    <Input value={business.name} onChange={(e) => setBusiness({ ...business, name: e.target.value })} required />
+                  </div>
                   <div>
                     <Label>Categoría</Label>
-                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={business.category} onChange={(e) => setBusiness({ ...business, category: e.target.value as Category })}>
-                      {["GASTRONOMIA", "HOSPEDAJE", "ARTESANIA", "PLATERIA", "BAR", "COMERCIO", "SERVICIOS", "TURISMO", "OTROS"].map((option) => <option key={option} value={option}>{option}</option>)}
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={business.category}
+                      onChange={(e) => setBusiness({ ...business, category: e.target.value as Category })}
+                    >
+                      {["GASTRONOMIA", "HOSPEDAJE", "ARTESANIA", "PLATERIA", "BAR", "COMERCIO", "SERVICIOS", "TURISMO", "OTROS"].map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
                     </select>
                   </div>
-                  <div className="md:col-span-2"><Label>Descripción</Label><Input value={business.description} onChange={(e) => setBusiness({ ...business, description: e.target.value })} required minLength={10} /></div>
-                  <div><Label>Teléfono</Label><Input value={business.phone} onChange={(e) => setBusiness({ ...business, phone: e.target.value })} /></div>
-                  <div><Label>Dirección</Label><Input value={business.address} onChange={(e) => setBusiness({ ...business, address: e.target.value })} /></div>
-                  <div className="md:col-span-2"><Button disabled={loading} type="submit" className="w-full">Crear cuenta y negocio</Button></div>
+                  <div className="md:col-span-2">
+                    <Label>Descripción</Label>
+                    <Input value={business.description} onChange={(e) => setBusiness({ ...business, description: e.target.value })} required minLength={10} />
+                  </div>
+                  <div>
+                    <Label>Teléfono</Label>
+                    <Input value={business.phone} onChange={(e) => setBusiness({ ...business, phone: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Dirección</Label>
+                    <Input value={business.address} onChange={(e) => setBusiness({ ...business, address: e.target.value })} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Button disabled={loading} type="submit" className="w-full">Crear cuenta y negocio</Button>
+                  </div>
                 </form>
               </TabsContent>
 
               <TabsContent value="login" className="mt-4">
                 <form className="grid gap-3 md:grid-cols-2" onSubmit={handleBusinessLogin}>
-                  <div><Label>Email</Label><Input type="email" value={login.email} onChange={(e) => setLogin({ ...login, email: e.target.value })} required /></div>
-                  <div><Label>Contraseña</Label><Input type="password" value={login.password} onChange={(e) => setLogin({ ...login, password: e.target.value })} required /></div>
-                  <div className="md:col-span-2"><Button disabled={loading} type="submit" className="w-full">Iniciar sesión de comercio</Button></div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input type="email" value={login.email} onChange={(e) => setLogin({ ...login, email: e.target.value })} required />
+                  </div>
+                  <div>
+                    <Label>Contraseña</Label>
+                    <Input type="password" value={login.password} onChange={(e) => setLogin({ ...login, password: e.target.value })} required />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Button disabled={loading} type="submit" className="w-full">Iniciar sesión de comercio</Button>
+                  </div>
                 </form>
               </TabsContent>
 
               <TabsContent value="payments" className="mt-4 space-y-3">
-                <p className="text-sm text-silver-500">El pago mensual activa tu negocio como destacado en catálogo y mapa.</p>
-                {!token && <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">Debes iniciar sesión como comercio antes de pagar.</p>}
-                {!stripeEnabled && <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">Stripe no está configurado en backend. Configura claves para habilitar cobro real.</p>}
-                <div><Label>ID de negocio</Label><Input value={businessId} onChange={(e) => setBusinessId(e.target.value)} placeholder="Pega aquí tu businessId" /></div>
+                <p className="text-sm text-silver-500">El pago mensual activa tu negocio como destacado en el catálogo de RDM Digital.</p>
+                {!localStorage.getItem("rdm_token") && <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">Debes iniciar sesión con tu cuenta de comercio antes de pagar.</p>}
+
+                <div>
+                  <Label>ID de negocio</Label>
+                  <Input value={businessId} onChange={(e) => setBusinessId(e.target.value)} placeholder="Pega aquí tu businessId" />
+                </div>
                 <div>
                   <Label>Plan</Label>
                   <div className="mt-1 flex gap-2">
@@ -163,7 +219,7 @@ export default function NegociosPortalPage() {
                     <Button type="button" variant={plan === "yearly" ? "default" : "outline"} onClick={() => setPlan("yearly")}>Anual</Button>
                   </div>
                 </div>
-                <Button disabled={loading || !businessId || !token || !stripeEnabled} onClick={handleCheckout} className="w-full">Pagar online y activar plan</Button>
+                <Button disabled={loading || !businessId} onClick={handleCheckout} className="w-full">Pagar online y activar plan</Button>
               </TabsContent>
             </Tabs>
           </div>
