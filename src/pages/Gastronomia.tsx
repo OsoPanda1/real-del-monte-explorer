@@ -21,9 +21,9 @@ export default function GastronomiaPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/explore/theme/gastronomia");
+        const response = await fetch("/api/businesses?category=GASTRONOMIA");
         const data = await response.json();
-        setBusinesses(data.businesses ?? []);
+        setBusinesses(data.data ?? []);
       } catch (error) {
         console.error("Error loading gastronomía:", error);
       } finally {
