@@ -113,7 +113,7 @@ router.get('/theme/:slug', async (req, res, next) => {
       return res.status(404).json({ error: `Theme "${slug}" not found` });
     }
 
-    const db = prisma as unknown as ExplorePrisma;
+    const db = prisma;
 
     const section = await db.contentSection.findFirst({
       where: { slug, isActive: true },
