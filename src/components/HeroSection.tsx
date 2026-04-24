@@ -2,8 +2,10 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { ChevronDown, MapPin, Compass, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import heroImg from "@/assets/hero-real-del-monte.webp";
 import { AuroraBackground } from "@/components/VisualEffects";
+
+// Use public image path
+const heroImg = "/images/rdm-hero.png";
 
 export default function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -16,6 +18,9 @@ export default function HeroSection() {
   const textY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
+  const activeSlide = slides[currentSlide];
+
+export default function HeroSection() {
   return (
     <section ref={containerRef} className="relative min-h-screen overflow-hidden bg-night-900 text-silver-300">
       {/* Parallax Background */}

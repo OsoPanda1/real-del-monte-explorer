@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircle, Send, Sparkles, X } from "lucide-react";
-import logoRdm from "@/assets/logo-rdm.png";
 import { ISABELLA_TAMV_PROFILE, TAMV_CAPABILITIES_SUMMARY } from "@/features/ai/isabellaTamvBase";
+
+// Use public image path for REALITO avatar
+const logoRdm = "/images/realito-likes.png";
 
 interface Message {
   id: string;
@@ -58,6 +60,27 @@ export default function RealitoChat({ initialOpen = false }: RealitoChatProps) {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  const sendMessage = useCallback(
+    async (text: string) => {
+      const content = text.trim();
+      if (!content || isTyping) return;
+
+      setMessages((prev) => [
+        ...prev,
+        { id: `${Date.now()}-u`, role: "user", content },
+      ]);
+      setInput("");
+      setIsTyping(true);
+
+      await new Promise((resolve) => setTimeout(resolve, 350));
+
+      setMessages((prev) => [
+        ...prev,
+        { id: `${Date.now()}-a`, role: "assistant", content: localReply(content) },
+      ]);
+      setIsTyping(false);
+    },
+    [isTyping],
   const streamAssistantReply = useCallback(async (content: string) => {
     const id = `${Date.now()}-a`;
     setMessages((prev) => [...prev, { id, role: "assistant", content: "" }]);
@@ -121,7 +144,7 @@ export default function RealitoChat({ initialOpen = false }: RealitoChatProps) {
               <img src={logoRdm} alt="REALITO" className="h-8 w-8 rounded-full" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-silver-300">REALITO</p>
-                <p className="text-xs text-silver-500">Asistente digital · Núcleo ISABELLA TAMV</p>
+                <p className="text-xs text-silver-500">Asistente digital</p>
               </div>
               <Sparkles className="h-4 w-4 text-gold-400" />
             </div>
@@ -141,6 +164,24 @@ export default function RealitoChat({ initialOpen = false }: RealitoChatProps) {
                       </button>
                     ))}
                   </div>
+                </div>
+              ) : (
+                messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
+                      message.role === "user"
+                        ? "ml-auto bg-gold-500 text-night-900"
+                        : "bg-white/10 text-silver-300"
+                    }`}
+                  >
+                    {message.content}
+                  </div>
+                ))
+              )}
+              {isTyping && (
+                <div className="w-fit rounded-xl bg-white/10 px-3 py-2 text-sm text-silver-400">
+                  REALITO está escribiendo…
                 </div>
               ) : (
                 messages.map((message) => (
