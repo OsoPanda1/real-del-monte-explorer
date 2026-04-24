@@ -5,189 +5,35 @@ interface CinematicIntroProps {
   onComplete: () => void;
 }
 
-// Animated equalizer bars driven by real AnalyserNode data
-const AudioEqualizer = ({ analyser }: { analyser: AnalyserNode | null }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef = useRef<number>(0);
+const storyMoments = [
+  "Un realmontense visionario decide devolverle a su tierra todo lo aprendido.",
+  "Más de 21,600 horas de autoestudio puestas al servicio del patrimonio local.",
+  "Reconocido en foros tecnológicos internacionales, pero casi anónimo en casa.",
+  "Hoy convierte ese contraste en una misión: elevar Real del Monte con RDM Digital.",
+];
 
-  useEffect(() => {
-    if (!analyser || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const BAR_COUNT = 48;
-    const dataArr = new Uint8Array(analyser.frequencyBinCount);
-
-    const draw = () => {
-      rafRef.current = requestAnimationFrame(draw);
-      analyser.getByteFrequencyData(dataArr);
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const w = canvas.width;
-      const h = canvas.height;
-      const barW = (w / BAR_COUNT) * 0.6;
-      const gap = (w / BAR_COUNT) * 0.4;
-
-      for (let i = 0; i < BAR_COUNT; i++) {
-        const binIndex = Math.floor((i / BAR_COUNT) * (analyser.frequencyBinCount * 0.75));
-        const rawVal = dataArr[binIndex] / 255;
-        const barH = Math.max(4, rawVal * h * 0.9);
-
-        const x = i * (barW + gap);
-        const y = h - barH;
-
-        const grad = ctx.createLinearGradient(x, h, x, y);
-        grad.addColorStop(0, `hsla(43, 90%, 55%, ${0.5 + rawVal * 0.5})`);
-        grad.addColorStop(0.5, `hsla(210, 80%, 65%, ${0.5 + rawVal * 0.4})`);
-        grad.addColorStop(1, `hsla(280, 60%, 70%, ${0.3 + rawVal * 0.5})`);
-
-        ctx.fillStyle = grad;
-        ctx.shadowBlur = rawVal > 0.5 ? 12 : 4;
-        ctx.shadowColor = `hsla(210, 100%, 65%, ${rawVal * 0.8})`;
-
-        const radius = Math.min(barW / 2, 3);
-        ctx.beginPath();
-        ctx.moveTo(x + radius, y);
-        ctx.lineTo(x + barW - radius, y);
-        ctx.quadraticCurveTo(x + barW, y, x + barW, y + radius);
-        ctx.lineTo(x + barW, h);
-        ctx.lineTo(x, h);
-        ctx.lineTo(x, y + radius);
-        ctx.quadraticCurveTo(x, y, x + radius, y);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.globalAlpha = 0.15;
-        ctx.save();
-        ctx.scale(1, -0.4);
-        ctx.translate(0, -h * 2 - 4);
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.moveTo(x + radius, y);
-        ctx.lineTo(x + barW - radius, y);
-        ctx.quadraticCurveTo(x + barW, y, x + barW, y + radius);
-        ctx.lineTo(x + barW, h);
-        ctx.lineTo(x, h);
-        ctx.lineTo(x, y + radius);
-        ctx.quadraticCurveTo(x, y, x + radius, y);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-        ctx.globalAlpha = 1;
-      }
-    };
-
-    draw();
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [analyser]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={480}
-      height={72}
-      className="w-[280px] md:w-[420px] h-[50px] md:h-[72px]"
-    />
-  );
-};
-
-// Animated waveform oscilloscope
-const AudioWaveform = ({ analyser }: { analyser: AnalyserNode | null }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef = useRef<number>(0);
-
-  useEffect(() => {
-    if (!analyser || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const dataArr = new Uint8Array(analyser.frequencyBinCount);
-
-    const draw = () => {
-      rafRef.current = requestAnimationFrame(draw);
-      analyser.getByteTimeDomainData(dataArr);
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "hsla(210, 100%, 75%, 0.8)";
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = "hsla(210, 100%, 65%, 0.8)";
-
-      ctx.beginPath();
-
-      const sliceWidth = canvas.width * 1.0 / analyser.frequencyBinCount;
-      let x = 0;
-
-      for (let i = 0; i < analyser.frequencyBinCount; i++) {
-        const v = dataArr[i] / 128.0;
-        const y = (v * canvas.height) / 2;
-
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-
-        x += sliceWidth;
-      }
-
-      ctx.lineTo(canvas.width, canvas.height / 2);
-      ctx.stroke();
-      
-      // Draw grid
-      ctx.lineWidth = 0.5;
-      ctx.strokeStyle = "hsla(210, 100%, 50%, 0.1)";
-      ctx.shadowBlur = 0;
-      ctx.beginPath();
-      ctx.moveTo(0, canvas.height / 2);
-      ctx.lineTo(canvas.width, canvas.height / 2);
-      ctx.stroke();
-    };
-
-    draw();
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [analyser]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={480}
-      height={40}
-      className="w-[280px] md:w-[420px] h-[30px] md:h-[40px] opacity-70"
-    />
-  );
-};
-
-const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
-  const [phase, setPhase] = useState(0);
+export default function CinematicIntro({ onComplete }: CinematicIntroProps) {
   const [started, setStarted] = useState(false);
-  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
+  const [moment, setMoment] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
 
-  const handleSkip = useCallback(() => {
-    audioRef.current?.pause();
-    audioCtxRef.current?.close().catch(() => {});
-    onComplete();
-  }, [onComplete]);
-
-  // Escape key support
   useEffect(() => {
     if (!started) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleSkip();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [started, handleSkip]);
 
-  const startIntro = () => {
+    const timers = [
+      setTimeout(() => setMoment(1), 5000),
+      setTimeout(() => setMoment(2), 10000),
+      setTimeout(() => setMoment(3), 15000),
+      setTimeout(() => onComplete(), 22000),
+    ];
+
+    return () => timers.forEach(clearTimeout);
+  }, [started, onComplete]);
+
+  useEffect(() => () => audioRef.current?.pause(), []);
+
+  const handleStart = async () => {
     setStarted(true);
-
     try {
       const ctx = new AudioContext();
       audioCtxRef.current = ctx;
@@ -621,6 +467,4 @@ const CinematicIntro = ({ onComplete }: CinematicIntroProps) => {
       )}
     </AnimatePresence>
   );
-};
-
-export default CinematicIntro;
+}

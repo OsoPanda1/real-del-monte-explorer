@@ -9,6 +9,7 @@ const heroImg = "/images/rdm-hero.png";
 
 export default function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
+
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
