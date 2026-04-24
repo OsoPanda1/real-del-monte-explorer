@@ -225,6 +225,19 @@ function MapaPageContent() {
                     </button>
                   ))}
                 </div>
+
+                <div className="rounded-2xl border bg-card p-4 space-y-3">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" /> Reglas de menciones comerciales por zona
+                  </p>
+                  {zoneMentions.map(({ policy, allowed, overflow }) => (
+                    <div key={policy.zone} className="rounded-xl border bg-background p-3">
+                      <p className="text-sm font-semibold">{policy.zone}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Máx. {policy.maxMentionsPerFeed} menciones · enfriamiento {policy.cooldownMinutes} min · {policy.fairnessWeight}</p>
+                      <p className="text-xs mt-1">Activas: {allowed.length}{overflow > 0 ? ` · retenidas por regla: ${overflow}` : ""}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-white/10">
