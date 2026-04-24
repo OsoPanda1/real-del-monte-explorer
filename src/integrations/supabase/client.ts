@@ -2,16 +2,30 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const FALLBACK_SUPABASE_URL = 'https://example.supabase.co';
+const FALLBACK_SUPABASE_KEY = 'public-anon-key-placeholder';
+
+const rawUrl = import.meta.env.VITE_SUPABASE_URL;
+const rawAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+const SUPABASE_URL = rawUrl || FALLBACK_SUPABASE_URL;
+const SUPABASE_ANON_KEY = rawAnonKey || FALLBACK_SUPABASE_KEY;
+const hasSupabaseConfig = Boolean(rawUrl && rawAnonKey);
+
+if (!hasSupabaseConfig) {
+  console.warn(
+    '[SUPABASE] Faltan variables VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY. Se usa un cliente placeholder para evitar pantalla en blanco. Configúralas en Vercel para habilitar autenticación y datos en vivo.',
+  );
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
 });
