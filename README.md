@@ -76,9 +76,11 @@ Solo las que empiezan con `VITE_` se exponen al cliente. Configurar en Vercel Da
 |----------|-----|-----------|
 | `VITE_SUPABASE_URL` | URL del proyecto Supabase | Sí |
 | `VITE_SUPABASE_ANON_KEY` | Clave anónima (segura para cliente) | Sí |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Alias legacy de la anon key (compatibilidad) | Opcional |
 | `VITE_MAPBOX_TOKEN` | Si usas tiles de Mapbox en el mapa | Opcional |
 
 > **Nunca** commitear `.env` al repo (`.gitignore` lo bloquea). Las claves `service_role` de Supabase viven solo en Edge Functions, nunca en el cliente.
+> Si falta `VITE_SUPABASE_URL` o `VITE_SUPABASE_ANON_KEY`, la app se renderiza en modo degradado para evitar pantalla en blanco, pero sin auth ni datos vivos hasta configurar variables en Vercel.
 
 ---
 

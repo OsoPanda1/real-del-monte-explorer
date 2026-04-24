@@ -163,17 +163,17 @@ function MapaPageContent() {
     })
   }
 
-  const filtered = useMemo(
-    () =>
-      markers.filter((item) => {
-        const byType = filter === "all" || item.type === filter
-        const byQuery = `${item.name} ${item.category} ${item.description}`
-          .toLowerCase()
-          .includes(query.toLowerCase().trim())
-        return byType && byQuery
-      }),
-    [filter, query],
-  )
+  const filtered = useMemo(() => {
+    const normalizedQuery = query.toLowerCase().trim()
+
+    return markers.filter((item) => {
+      const byType = filter === "all" || item.type === filter
+      const searchableContent = [item.name, item.category, item.description].join(" ").toLowerCase()
+      const byQuery = searchableContent.includes(normalizedQuery)
+
+      return byType && byQuery
+    })
+  }, [filter, query])
 
   const stats = useMemo(
     () => [
