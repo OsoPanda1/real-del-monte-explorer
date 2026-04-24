@@ -2,3 +2,6 @@ project_id = "dwjaomisrpdzssqzhrtx"
 
 [functions.realito-chat]
 verify_jwt = false
+
+[functions.ecosystem-sync]
+verify_jwt = false
