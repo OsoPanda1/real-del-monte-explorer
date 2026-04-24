@@ -279,6 +279,133 @@ export const MeshGradient = () => {
   );
 };
 
+// Effect 12: Aurora Background - Animated ambient light
+export const AuroraBackground = ({ className = "" }: { className?: string }) => {
+  return (
+    <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
+      <motion.div
+        className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%]"
+        style={{
+          background: "conic-gradient(from 0deg at 50% 50%, hsla(210,100%,55%,0.08) 0deg, hsla(43,80%,55%,0.06) 60deg, hsla(145,35%,28%,0.05) 120deg, hsla(18,45%,48%,0.06) 180deg, hsla(210,100%,55%,0.08) 240deg, hsla(43,80%,55%,0.04) 300deg, hsla(210,100%,55%,0.08) 360deg)",
+        }}
+        animate={{ rotate: [0, 360] }}
+        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+      />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-[hsla(210,100%,55%,0.04)] blur-3xl animate-orb" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-[hsla(43,80%,55%,0.04)] blur-3xl animate-orb-reverse" />
+    </div>
+  );
+};
+
+// Effect 13: Floating Orbs - Ambient decorative elements
+export const FloatingOrbs = ({ count = 5, className = "" }: { count?: number; className?: string }) => {
+  const orbs = Array.from({ length: count }, (_, i) => ({
+    id: i,
+    size: 60 + Math.random() * 200,
+    left: `${10 + Math.random() * 80}%`,
+    top: `${10 + Math.random() * 80}%`,
+    color: ["hsla(210,100%,55%,0.04)", "hsla(43,80%,55%,0.04)", "hsla(145,35%,28%,0.03)", "hsla(18,45%,48%,0.04)"][i % 4],
+    delay: i * 1.5,
+    duration: 8 + Math.random() * 6,
+  }));
+
+  return (
+    <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
+      {orbs.map((orb) => (
+        <motion.div
+          key={orb.id}
+          className="absolute rounded-full blur-3xl"
+          style={{
+            width: orb.size,
+            height: orb.size,
+            left: orb.left,
+            top: orb.top,
+            background: orb.color,
+          }}
+          animate={{
+            y: [0, -30, 10, -20, 0],
+            x: [0, 15, -10, 20, 0],
+            scale: [1, 1.1, 0.95, 1.05, 1],
+          }}
+          transition={{
+            duration: orb.duration,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: orb.delay,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+// Effect 14: Immersive Section Wrapper with ambient effects
+export const ImmersiveSection = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
+  return (
+    <section className={`relative overflow-hidden ${className}`}>
+      <FloatingOrbs count={3} />
+      <div className="relative z-10">{children}</div>
+    </section>
+  );
+};
+
+// Effect 15: Animated Counter
+export const AnimatedCounter = ({ target, duration = 2, suffix = "", prefix = "" }: { target: number; duration?: number; suffix?: string; prefix?: string }) => {
+  const ref = useRef<HTMLSpanElement>(null);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current && ref.current) {
+          hasAnimated.current = true;
+          const start = 0;
+          const startTime = performance.now();
+
+          const animate = (currentTime: number) => {
+            const elapsed = (currentTime - startTime) / 1000;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const current = Math.round(start + (target - start) * eased);
+
+            if (ref.current) {
+              ref.current.textContent = `${prefix}${current.toLocaleString()}${suffix}`;
+            }
+
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            }
+          };
+
+          requestAnimationFrame(animate);
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [target, duration, suffix, prefix]);
+
+  return <span ref={ref}>{prefix}0{suffix}</span>;
+};
+
+// Effect 16: Gradient Border Card
+export const GradientBorderCard = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
+  return (
+    <div className={`relative group ${className}`}>
+      <div
+        className="absolute -inset-[1px] rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{
+          background: "linear-gradient(135deg, hsla(210,100%,55%,0.4), hsla(43,80%,55%,0.4), hsla(18,45%,48%,0.4))",
+          filter: "blur(2px)",
+        }}
+      />
+      <div className="relative rounded-2xl overflow-hidden">{children}</div>
+    </div>
+  );
+};
+
 export default {
   FloatingParticles,
   FogLayer,
@@ -292,4 +419,9 @@ export default {
   StaggerItem,
   GlowCard,
   MeshGradient,
+  AuroraBackground,
+  FloatingOrbs,
+  ImmersiveSection,
+  AnimatedCounter,
+  GradientBorderCard,
 };

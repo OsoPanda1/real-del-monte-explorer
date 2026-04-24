@@ -3,6 +3,7 @@ import { Palette, Gem, Scissors, Brush, CircleDot, Award } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
+import { SEOMeta, PAGE_SEO } from "@/components/SEOMeta";
 import callesImg from "@/assets/calles-colonial.webp";
 import minaImg from "@/assets/mina-acosta.webp";
 import rdm1 from "@/assets/rdm1.jpeg";
@@ -93,6 +94,7 @@ const ArtePage = () => {
   return (
     <PageTransition>
       <div className="min-h-screen bg-background">
+        <SEOMeta {...PAGE_SEO.arte} />
         <Navbar />
         
         {/* Hero */}

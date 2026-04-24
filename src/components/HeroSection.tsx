@@ -1,165 +1,156 @@
-import { useEffect, useState, useRef } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { MapPin, ChevronDown } from "lucide-react";
-import logoRdm from "@/assets/logo-rdm.png";
-import heroStreet from "@/assets/calles-colonial.webp";
-import heroMina from "@/assets/mina-acosta.webp";
-import heroPanteon from "@/assets/panteon-ingles.webp";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useRef } from "react";
+import { ChevronDown, MapPin, Compass, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AuroraBackground } from "@/components/VisualEffects";
 
-const slides = [
-  {
-    title: "Real del Monte auténtico",
-    subtitle: "Calles empedradas y arquitectura histórica del municipio",
-    image: heroStreet,
-  },
-  {
-    title: "Legado minero vivo",
-    subtitle: "Ruta patrimonial en Mina de Acosta, Mineral del Monte",
-    image: heroMina,
-  },
-  {
-    title: "Historia y memoria cultural",
-    subtitle: "Panteón Inglés y relatos de una comunidad con identidad única",
-    image: heroPanteon,
-  },
-];
+// Use public image path
+const heroImg = "/images/rdm-hero.png";
 
-const HeroSection = () => {
-  const [currentSlide, setCurrentSlide] = useState(0);
+export default function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
   });
 
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
+  const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.05]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 7000);
-    return () => clearInterval(timer);
-  }, []);
 
   const activeSlide = slides[currentSlide];
 
   return (
-    <section ref={containerRef} className="relative h-screen min-h-[700px] w-full overflow-hidden">
-      <motion.div className="absolute inset-0" style={{ y, scale }}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeSlide.image}
-            initial={{ opacity: 0.35, scale: 1.06 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0.35, scale: 1.03 }}
-            transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${activeSlide.image})` }}
-          />
-        </AnimatePresence>
-
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/80" />
-        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent" />
-      </motion.div>
-
+    <section ref={containerRef} className="relative min-h-screen overflow-hidden bg-night-900 text-silver-300">
+      {/* Parallax Background */}
       <motion.div
-        className="relative z-20 h-full flex flex-col items-center justify-center px-6 text-center"
-        style={{ opacity }}
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${heroImg})`, y: backgroundY, scale: 1.1, opacity: 0.4 }}
+      />
+
+      {/* Gradient Overlays */}
+      <div className="absolute inset-0 bg-gradient-to-b from-night-900/80 via-night-900/60 to-night-900" />
+      <div className="absolute inset-0 bg-gradient-to-r from-night-900/40 via-transparent to-night-900/40" />
+
+      {/* Aurora Ambient */}
+      <AuroraBackground />
+
+      {/* Floating Dust Particles */}
+      <div className="dust-particles" />
+
+      {/* Main Content */}
+      <motion.div
+        style={{ y: textY, opacity }}
+        className="relative mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-6 text-center"
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.9, delay: 0.2 }}
-          className="mb-8"
-        >
-          <div className="relative">
-            <div className="absolute -inset-2 rounded-full bg-white/5 backdrop-blur-xl" />
-            <img
-              src={logoRdm}
-              alt="RDM Digital"
-              className="relative w-20 h-20 md:w-24 md:h-24 rounded-full object-cover ring-1 ring-white/20"
-            />
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, width: 0 }}
-          animate={{ opacity: 1, width: "auto" }}
-          transition={{ duration: 0.8, delay: 0.35 }}
-          className="flex items-center gap-2 mb-7 px-5 py-2 rounded-full border border-white/20 bg-black/25 backdrop-blur-md"
-        >
-          <MapPin className="w-3 h-3 text-gold" />
-          <span className="text-[10px] md:text-xs tracking-[0.3em] uppercase text-white/75 font-light">
-            Vista real de Mineral del Monte · Hidalgo · México
-          </span>
-        </motion.div>
-
-        <div className="relative min-h-[140px] md:min-h-[160px] mb-5 w-full max-w-5xl">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentSlide}
-              initial={{ opacity: 0, y: 18, filter: "blur(8px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -16, filter: "blur(8px)" }}
-              transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0 flex flex-col items-center justify-center"
-            >
-              <h1 className="font-display text-3xl md:text-5xl lg:text-6xl text-white tracking-tight">
-                {activeSlide.title}
-              </h1>
-              <p className="mt-4 text-sm md:text-base text-gold/90 tracking-[0.16em] uppercase font-light max-w-4xl">
-                {activeSlide.subtitle}
-              </p>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        <div className="flex gap-2 mb-10">
-          {slides.map((slide, i) => (
-            <button
-              key={slide.title}
-              onClick={() => setCurrentSlide(i)}
-              className={`h-[3px] rounded-full transition-all duration-300 ${
-                currentSlide === i
-                  ? "w-10 bg-gold shadow-[0_0_12px_hsla(43,65%,52%,0.8)]"
-                  : "w-2 bg-white/35"
-              }`}
-              aria-label={`Ir a vista ${i + 1}`}
-            />
-          ))}
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.55 }}
-          className="flex flex-col sm:flex-row gap-3"
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="space-y-8"
         >
-          <button className="btn-hero-primary">Planear visita real del municipio</button>
-          <button className="btn-hero-glass">Explorar mapa cultural del pueblo</button>
+          {/* Top Badge */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-xs uppercase tracking-[0.25em] backdrop-blur-sm"
+          >
+            <MapPin className="h-3.5 w-3.5 text-gold-400" />
+            <span>Real del Monte</span>
+            <span className="mx-1 h-3 w-px bg-white/20" />
+            <span className="text-gold-400">Pueblo Magico</span>
+            <span className="mx-1 h-3 w-px bg-white/20" />
+            <span>Hidalgo</span>
+          </motion.div>
+
+          {/* Main Title */}
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+            className="font-serif text-5xl leading-tight md:text-7xl lg:text-8xl"
+          >
+            <span className="block">Explora la magia de</span>
+            <span
+              className="block animate-gradient-text text-glow-gold"
+              style={{
+                backgroundImage: "linear-gradient(135deg, hsl(43,80%,55%) 0%, hsl(35,70%,65%) 25%, hsl(43,80%,55%) 50%, hsl(25,60%,50%) 75%, hsl(43,80%,55%) 100%)",
+                backgroundSize: "200% 200%",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              Real del Monte
+            </span>
+          </motion.h1>
+
+          {/* Subtitle */}
+          <motion.p
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.7 }}
+            className="mx-auto max-w-2xl text-base text-silver-400 md:text-lg leading-relaxed"
+          >
+            Historia minera, gastronomia local, eventos vivos y rutas culturales
+            en una sola plataforma digital a 2,700 metros de altura.
+          </motion.p>
+
+          {/* Stats Row */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.9 }}
+            className="flex flex-wrap items-center justify-center gap-6 text-xs text-silver-500"
+          >
+            {[
+              { label: "Altitud", value: "2,700 msnm" },
+              { label: "Fundado", value: "1534" },
+              { label: "Pueblo Magico", value: "Desde 2004" },
+            ].map((stat) => (
+              <div key={stat.label} className="flex items-center gap-2">
+                <Sparkles className="h-3 w-3 text-gold-400/60" />
+                <span className="text-silver-300 font-medium">{stat.value}</span>
+                <span className="text-silver-500">{stat.label}</span>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* CTA Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 1.0 }}
+            className="flex flex-wrap justify-center gap-4 pt-2"
+          >
+            <Link
+              to="/mapa"
+              className="btn-hero-primary group inline-flex items-center gap-2"
+            >
+              <Compass className="h-4 w-4 transition-transform group-hover:rotate-45" />
+              Explorar mapa
+            </Link>
+            <Link
+              to="/rutas"
+              className="btn-hero-glass inline-flex items-center gap-2"
+            >
+              Ver rutas turisticas
+            </Link>
+          </motion.div>
         </motion.div>
 
+        {/* Scroll Indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.1 }}
-          className="absolute bottom-10 flex flex-col items-center gap-2"
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-8 flex flex-col items-center gap-2"
         >
-          <span className="text-[10px] tracking-[0.4em] uppercase text-white/35 font-light">Desliza para descubrir</span>
-          <motion.div
-            animate={{ y: [0, 6, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          >
-            <ChevronDown className="w-4 h-4 text-white/35" />
-          </motion.div>
+          <span className="text-[10px] uppercase tracking-[0.3em] text-silver-500">Descubre</span>
+          <ChevronDown className="h-5 w-5 animate-bounce text-gold-400/60" />
         </motion.div>
       </motion.div>
-
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
     </section>
   );
-};
-
-export default HeroSection;
+}

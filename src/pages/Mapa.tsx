@@ -1,13 +1,17 @@
-import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Star, Award, Phone, X, Filter, Activity, ShieldCheck } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { lazy, Suspense, useMemo, useState } from "react";
+import { Award, Filter, Layers, LocateFixed, MapPin, Phone, Radar, Search, Star, Zap, Compass, Activity, Cpu, DatabaseZap, Workflow } from "lucide-react";
+import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
-import { commerceMentionPolicies, getRealtimeMapSnapshot } from "@/features/ai";
+import GradientSeparator from "@/components/GradientSeparator";
+import { PAGE_SEO, SEOMeta } from "@/components/SEOMeta";
+import { AuroraBackground } from "@/components/VisualEffects";
+import { Link } from "react-router-dom";
+import { Map2DPanel } from "@/components/map/Map2DPanel";
+import { MapSyncProvider, useMapSync } from "@/hooks/useMapSync";
+import type { MapMarkerData, MarkerType } from "@/features/places/mapTypes";
+import { buildRecommendedActions, buildTwinOverlaySummary, synthesizeTwinSignals } from "@/features/twins/hybridTwin";
 
 import pasteImg from "@/assets/paste.webp";
 import minaImg from "@/assets/mina-acosta.webp";
@@ -15,242 +19,209 @@ import panteonImg from "@/assets/panteon-ingles.webp";
 import penasImg from "@/assets/penas-cargadas.webp";
 import callesImg from "@/assets/calles-colonial.webp";
 
-interface MapMarkerData {
-  id: string;
-  name: string;
-  category: string;
-  lat: number;
-  lng: number;
-  zone: "Centro Histórico" | "Corredor Minero" | "Bosque y Miradores";
-  description: string;
-  image: string;
-  type: "place" | "business";
-  isPremium?: boolean;
-  rating?: number;
-  phone?: string;
-}
+const Map3DTwin = lazy(() => import("@/components/map/Map3DTwin").then((module) => ({ default: module.Map3DTwin })));
 
 const markers: MapMarkerData[] = [
-  { id: "1", name: "Mina de Acosta", category: "Mina", zone: "Corredor Minero", lat: 20.1410, lng: -98.6720, description: "Desciende 450 metros bajo tierra en esta mina del siglo XVIII.", image: minaImg, type: "place", rating: 4.8 },
-  { id: "2", name: "Panteón Inglés", category: "Museo", zone: "Corredor Minero", lat: 20.1445, lng: -98.6780, description: "Cementerio único con cruces celtas entre pinos y neblina.", image: panteonImg, type: "place", rating: 4.7 },
-  { id: "3", name: "Peñas Cargadas", category: "Naturaleza", zone: "Bosque y Miradores", lat: 20.1500, lng: -98.6600, description: "Formaciones rocosas gigantes en equilibrio imposible.", image: penasImg, type: "place", rating: 4.9 },
-  { id: "4", name: "Plaza Principal", category: "Cultura", zone: "Centro Histórico", lat: 20.1380, lng: -98.6735, description: "El corazón del pueblo mágico.", image: callesImg, type: "place", rating: 4.5 },
-  { id: "5", name: "Museo del Paste", category: "Museo", zone: "Centro Histórico", lat: 20.1375, lng: -98.6740, description: "Descubre la historia del paste.", image: pasteImg, type: "place", rating: 4.6 },
-  { id: "6", name: "Parroquia de la Asunción", category: "Iglesia", zone: "Centro Histórico", lat: 20.1370, lng: -98.6730, description: "Templo del siglo XVIII con arquitectura colonial.", image: callesImg, type: "place", rating: 4.7 },
-  { id: "7", name: "Pastes El Portal", category: "Pastes", zone: "Centro Histórico", lat: 20.1378, lng: -98.6738, description: "Los pastes más tradicionales desde 1985.", image: pasteImg, type: "business", isPremium: true, rating: 4.9, phone: "771 123 4567" },
-  { id: "8", name: "Hotel Real de Minas", category: "Hospedaje", zone: "Centro Histórico", lat: 20.1395, lng: -98.6750, description: "Hotel boutique en casona colonial restaurada.", image: callesImg, type: "business", isPremium: true, rating: 4.7, phone: "771 234 5678" },
-  { id: "9", name: "Artesanías del Monte", category: "Souvenir", zone: "Centro Histórico", lat: 20.1365, lng: -98.6725, description: "Artesanías locales hechas a mano.", image: callesImg, type: "business", isPremium: true, rating: 4.6, phone: "771 345 6789" },
-  { id: "10", name: "Café La Neblina", category: "Restaurante", zone: "Centro Histórico", lat: 20.1382, lng: -98.6742, description: "Café artesanal de altura con vista al bosque.", image: panteonImg, type: "business", isPremium: false, rating: 4.4 },
-  { id: "11", name: "Tours Mineros RDM", category: "Tours", zone: "Corredor Minero", lat: 20.1415, lng: -98.6715, description: "Recorridos guiados por las minas históricas.", image: minaImg, type: "business", isPremium: true, rating: 4.8, phone: "771 456 7890" },
-  { id: "12", name: "Casa de la Cultura", category: "Cultura", zone: "Centro Histórico", lat: 20.1372, lng: -98.6732, description: "Espacio cultural con exposiciones y talleres.", image: callesImg, type: "place", rating: 4.5 },
+  { id: "1", name: "Mina de Acosta", category: "Mina", lat: 20.141, lng: -98.672, description: "Museo y túneles históricos de minería con experiencias guiadas inmersivas.", image: minaImg, type: "place", rating: 4.8, status: "Verificado" },
+  { id: "2", name: "Panteón Inglés", category: "Museo", lat: 20.08, lng: -98.7, description: "Patrimonio británico en el bosque con recorridos narrados por audio-guía.", image: panteonImg, type: "place", rating: 4.7, status: "Activo" },
+  { id: "3", name: "Peñas Cargadas", category: "Naturaleza", lat: 20.15, lng: -98.66, description: "Formaciones rocosas y senderismo panorámico para ecoturismo de aventura.", image: penasImg, type: "place", rating: 4.9, status: "En alta demanda" },
+  { id: "4", name: "Plaza Principal", category: "Cultura", lat: 20.138, lng: -98.6735, description: "Centro social y turístico del pueblo con eventos culturales diarios.", image: callesImg, type: "place", rating: 4.5, status: "Activo" },
+  { id: "5", name: "Museo del Paste", category: "Museo", lat: 20.1375, lng: -98.674, description: "Historia del paste y su herencia cornish con talleres gastronómicos.", image: pasteImg, type: "place", rating: 4.6, status: "Verificado" },
+  { id: "6", name: "Pastes El Portal", category: "Pastes", lat: 20.1378, lng: -98.6738, description: "Pastes tradicionales en el centro histórico y menú digital actualizado.", image: pasteImg, type: "business", isPremium: true, rating: 4.9, phone: "771 123 4567", status: "En alta demanda" },
+  { id: "7", name: "Hotel Real de Minas", category: "Hospedaje", lat: 20.1395, lng: -98.675, description: "Hospedaje boutique en casona colonial con check-in inteligente.", image: callesImg, type: "business", isPremium: true, rating: 4.7, phone: "771 234 5678", status: "Verificado" },
+  { id: "8", name: "Café La Neblina", category: "Restaurante", lat: 20.1382, lng: -98.6742, description: "Café de altura con ambiente local y reservación express.", image: panteonImg, type: "business", rating: 4.4, status: "Activo" },
 ];
 
-const createIcon = (type: "place" | "business", isPremium?: boolean) => {
-  const color = isPremium ? "#C4882F" : type === "place" ? "#B85C3C" : "#4A7C59";
-  const size = isPremium ? 36 : 30;
-  return L.divIcon({
-    className: "custom-marker",
-    html: `<div style="
-      width: ${size}px; height: ${size}px;
-      background: ${color};
-      border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg);
-      border: 3px solid white;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      display: flex; align-items: center; justify-content: center;
-    ">
-      <svg style="transform:rotate(45deg); width:${size * 0.45}px; height:${size * 0.45}px;" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        ${isPremium
-          ? '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>'
-          : '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>'}
-      </svg>
-    </div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size],
-    popupAnchor: [0, -size],
-  });
-};
+function MapaPageContent() {
+  const [filter, setFilter] = useState<"all" | MarkerType>("all");
+  const [selected, setSelected] = useState<MapMarkerData | null>(markers[0]);
+  const [query, setQuery] = useState("");
+  const [mode, setMode] = useState<"2d" | "3d">("2d");
+  const { viewport, syncFrom2D, syncFrom3D } = useMapSync();
 
-function FitBounds({ markers }: { markers: MapMarkerData[] }) {
-  const map = useMap();
-  useEffect(() => {
-    if (markers.length > 0) {
-      const bounds = L.latLngBounds(markers.map((m) => [m.lat, m.lng]));
-      map.fitBounds(bounds, { padding: [40, 40] });
-    }
-  }, [markers, map]);
-  return null;
-}
-
-const MapaPage = () => {
-  const [selected, setSelected] = useState<MapMarkerData | null>(null);
-  const [filter, setFilter] = useState<"all" | "place" | "business">("all");
-  const [snapshot, setSnapshot] = useState(() => getRealtimeMapSnapshot());
-
-  useEffect(() => {
-    const timer = setInterval(() => setSnapshot(getRealtimeMapSnapshot()), 30000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const filtered = markers.filter((m) => filter === "all" ? true : m.type === filter);
-
-  const zoneMentions = useMemo(() => {
-    const businesses = filtered.filter((m) => m.type === "business");
-    return commerceMentionPolicies.map((policy) => {
-      const inZone = businesses.filter((b) => b.zone === policy.zone);
-      const allowed = inZone.slice(0, policy.maxMentionsPerFeed);
-      const overflow = Math.max(0, inZone.length - allowed.length);
-      return { policy, allowed, overflow };
+  const handleFilterChange = (nextFilter: MarkerType | "all") => {
+    setFilter(nextFilter);
+    setSelected((current) => {
+      if (!current) return null;
+      if (nextFilter === "all") return current;
+      return current.type === nextFilter ? current : null;
     });
-  }, [filtered]);
+  };
+
+  const filtered = useMemo(
+    () =>
+      markers.filter((item) => {
+        const byType = filter === "all" || item.type === filter;
+        const byQuery = `${item.name} ${item.category} ${item.description}`
+          .toLowerCase()
+          .includes(query.toLowerCase().trim());
+        return byType && byQuery;
+      }),
+    [filter, query],
+  );
+
+  const stats = useMemo(
+    () => [
+      { label: "Nodos activos", value: filtered.length.toString(), icon: Radar },
+      {
+        label: "Comercios premium",
+        value: filtered.filter((item) => item.isPremium).length.toString(),
+        icon: Zap,
+      },
+      {
+        label: "Calificación promedio",
+        value: `${(
+          filtered.reduce((sum, current) => sum + (current.rating ?? 0), 0) /
+          Math.max(filtered.length, 1)
+        ).toFixed(1)}`,
+        icon: Star,
+      },
+    ],
+    [filtered],
+  );
+
+
+  const twinSignals = useMemo(() => synthesizeTwinSignals(filtered), [filtered]);
+  const twinSummary = useMemo(() => buildTwinOverlaySummary(twinSignals), [twinSignals]);
+  const suggestedActions = useMemo(() => buildRecommendedActions(twinSummary), [twinSummary]);
+
+  const integrationReferences = [
+    { label: "Eclipse Ditto", url: "https://github.com/eclipse-ditto/ditto" },
+    { label: "Underrun (simulación inmersiva)", url: "https://github.com/phoboslab/underrun" },
+    { label: "OpenTwins", url: "https://github.com/ertis-research/opentwins" },
+    { label: "Awesome Digital Twins", url: "https://github.com/edt-community/awesome-digital-twins" },
+    { label: "SmartHotel360 IoT", url: "https://github.com/microsoft/SmartHotel360-IoT" },
+    { label: "Forge Digital Twin", url: "https://github.com/Autodesk-Forge/forge-digital-twin" },
+  ] as const;
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background">
+      <SEOMeta {...PAGE_SEO.mapa} />
+      <div className="min-h-screen bg-night-900 text-silver-300 cinematic-gradient">
         <Navbar />
-        <div className="pt-24 pb-20">
-          <div className="container mx-auto px-4 md:px-8">
+
+        {/* Immersive Hero */}
+        <section className="relative overflow-hidden pt-24 pb-10">
+          <div className="absolute inset-0 bg-cover bg-center opacity-15" style={{ backgroundImage: `url(${callesImg})` }} />
+          <div className="absolute inset-0 bg-gradient-to-b from-night-900/80 via-night-900/70 to-night-900" />
+          <AuroraBackground />
+          <div className="dust-particles" />
+
+          <div className="relative mx-auto max-w-7xl px-4 py-12 md:px-6">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-8"
+              transition={{ duration: 0.8 }}
+              className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
             >
-              <h1 className="font-serif text-4xl md:text-5xl font-bold text-foreground mb-3">Mapa Inmersivo de Real del Monte</h1>
-              <p className="text-muted-foreground max-w-2xl">
-                Vista interactiva de nueva generación con contexto turístico, cultural y reglas transparentes de mención comercial por zona.
-              </p>
-              <div className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs text-muted-foreground bg-background/70">
-                <Activity className="w-3 h-3 text-emerald-600" />
-                Estado en tiempo real: {snapshot.weatherNote} · {snapshot.activeVisitors} visitantes activos
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.2em] backdrop-blur-sm">
+                  <Compass className="h-3.5 w-3.5 text-gold-400" />
+                  <span>Gemelo Digital en Tiempo Real</span>
+                </div>
+                <h1 className="font-serif text-4xl md:text-6xl leading-tight">
+                  <span className="block">Mapa</span>
+                  <span
+                    className="block animate-gradient-text text-glow-gold"
+                    style={{
+                      backgroundImage: "linear-gradient(135deg, hsl(43,80%,55%) 0%, hsl(35,70%,65%) 25%, hsl(43,80%,55%) 50%, hsl(25,60%,50%) 75%, hsl(43,80%,55%) 100%)",
+                      backgroundSize: "200% 200%",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    }}
+                  >
+                    Inteligente
+                  </span>
+                </h1>
+                <p className="max-w-2xl text-base text-silver-400 md:text-lg leading-relaxed">
+                  Infraestructura cartografica con clustering dinamico, sincronizacion 2D/3D y visual neblinoso cinematografico.
+                </p>
+              </div>
+              <div className="inline-flex rounded-full border border-white/15 bg-white/5 p-1 text-xs">
+                <button
+                  onClick={() => setMode("2d")}
+                  className={`rounded-full px-4 py-2 transition ${mode === "2d" ? "bg-gold-500 text-night-900" : "text-silver-300 hover:bg-white/10"}`}
+                >
+                  Vista 2D
+                </button>
+                <button
+                  onClick={() => setMode("3d")}
+                  className={`rounded-full px-4 py-2 transition ${mode === "3d" ? "bg-gold-500 text-night-900" : "text-silver-300 hover:bg-white/10"}`}
+                >
+                  Gemelo 3D
+                </button>
               </div>
             </motion.div>
+          </div>
+        </section>
 
-            <div className="flex flex-wrap gap-2 mb-6">
-              {[
-                { key: "all", label: "Todo", count: markers.length },
-                { key: "place", label: "Sitios turísticos", count: markers.filter(m => m.type === "place").length },
-                { key: "business", label: "Negocios", count: markers.filter(m => m.type === "business").length },
-              ].map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => setFilter(f.key as typeof filter)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-                    filter === f.key ? "btn-premium" : "btn-glass hover:bg-foreground/5"
-                  }`}
-                >
-                  {f.label}
-                  <span className="text-xs opacity-70">({f.count})</span>
-                </button>
-              ))}
-            </div>
+        <GradientSeparator animated />
 
-            <div className="grid lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 rounded-2xl overflow-hidden shadow-elevated border border-border ring-1 ring-primary/10" style={{ minHeight: 560 }}>
-                <MapContainer
-                  center={[20.1395, -98.6735]}
-                  zoom={15}
-                  scrollWheelZoom
-                  style={{ width: "100%", height: "100%", minHeight: 560 }}
-                  zoomControl
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
-                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                  />
-                  <FitBounds markers={filtered} />
-                  {filtered.map((marker) => (
-                    <Marker
-                      key={marker.id}
-                      position={[marker.lat, marker.lng]}
-                      icon={createIcon(marker.type, marker.isPremium)}
-                      eventHandlers={{ click: () => setSelected(marker) }}
-                    >
-                      <Popup>
-                        <div className="text-center min-w-[170px]">
-                          <strong className="block text-sm">{marker.name}</strong>
-                          <span className="text-xs text-gray-500">{marker.category} · {marker.zone}</span>
-                          {marker.rating && <span className="block text-xs text-amber-600 mt-1">★ {marker.rating}</span>}
-                        </div>
-                      </Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
+        <main className="mx-auto max-w-7xl space-y-5 px-4 pb-12 md:px-6">
+
+          <section className="grid gap-4 md:grid-cols-3">
+            {stats.map((item) => (
+              <div key={item.label} className="glass-dark rounded-2xl border border-white/10 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-white/5 p-2">
+                    <item.icon className="h-5 w-5 text-gold-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-silver-500">{item.label}</p>
+                    <p className="text-xl font-semibold text-silver-200">{item.value}</p>
+                  </div>
+                </div>
               </div>
+            ))}
+          </section>
 
-              <div className="space-y-4">
-                <AnimatePresence mode="wait">
-                  {selected ? (
-                    <motion.div
-                      key={selected.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="rounded-2xl overflow-hidden glass shadow-elevated"
-                    >
-                      <div className="relative h-48 overflow-hidden">
-                        <img src={selected.image} alt={selected.name} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                        {selected.isPremium && (
-                          <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-gold/90 text-primary-foreground text-[10px] font-bold uppercase tracking-wide flex items-center gap-1">
-                            <Award className="w-3 h-3" /> Premium
-                          </div>
-                        )}
-                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full glass text-[10px] font-medium text-foreground">
-                          {selected.category}
-                        </div>
-                        <button
-                          onClick={() => setSelected(null)}
-                          className="absolute top-3 right-3 w-7 h-7 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60 transition-colors"
-                          style={selected.isPremium ? { right: 90 } : {}}
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="p-5">
-                        <h3 className="font-serif text-xl font-bold text-foreground mb-1">{selected.name}</h3>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Zona {selected.zone}</p>
-                        {selected.rating && (
-                          <div className="flex items-center gap-1 mb-3">
-                            <Star className="w-4 h-4 fill-gold text-gold" />
-                            <span className="text-sm font-medium text-foreground">{selected.rating}</span>
-                          </div>
-                        )}
-                        <p className="text-sm text-muted-foreground leading-relaxed mb-4">{selected.description}</p>
-                        {selected.phone && (
-                          <a href={`tel:${selected.phone}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
-                            <Phone className="w-4 h-4" /> {selected.phone}
-                          </a>
-                        )}
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="rounded-2xl glass shadow-card p-6 text-center"
-                    >
-                      <MapPin className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                      <p className="text-sm text-muted-foreground">Selecciona un marcador para ver detalles del lugar o negocio.</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="rounded-2xl glass shadow-card p-4 max-h-[300px] overflow-y-auto space-y-2">
-                  <h4 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">
-                    <Filter className="w-3 h-3 inline mr-1" />
-                    {filter === "all" ? "Todos" : filter === "place" ? "Sitios turísticos" : "Negocios"} ({filtered.length})
-                  </h4>
-                  {filtered.map((m) => (
+          <section className="grid gap-6 lg:grid-cols-12">
+            <div className="space-y-4 lg:col-span-8">
+              <div className="glass-dark rounded-2xl border border-white/10 p-4">
+                <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+                  <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-night-800/80 px-3 py-2">
+                    <Search className="h-4 w-4 text-silver-500" />
+                    <input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Buscar lugares, comercios o experiencias..."
+                      className="w-full bg-transparent text-sm text-silver-200 outline-none placeholder:text-silver-500"
+                    />
+                  </div>
+                  <button
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                      filter === "place"
+                        ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                        : "border-white/10 bg-white/5 text-silver-300 hover:border-white/20"
+                    }`}
+                    onClick={() => handleFilterChange("place")}
+                  >
+                    <Filter className="h-4 w-4" /> Lugares
+                  </button>
+                  <button
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                      filter === "business"
+                        ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                        : "border-white/10 bg-white/5 text-silver-300 hover:border-white/20"
+                    }`}
+                    onClick={() => handleFilterChange("business")}
+                  >
+                    <Layers className="h-4 w-4" /> Negocios
+                  </button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  {["all", "place", "business"].map((item) => (
                     <button
-                      key={m.id}
-                      onClick={() => setSelected(m)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all duration-150 flex items-center gap-2 ${
-                        selected?.id === m.id ? "bg-primary/10 text-primary font-medium" : "hover:bg-foreground/5 text-foreground"
+                      key={item}
+                      onClick={() => handleFilterChange(item as "all" | MarkerType)}
+                      className={`rounded-full border px-3 py-1.5 ${
+                        filter === item
+                          ? "border-gold-500/60 bg-gold-500/20 text-gold-300"
+                          : "border-white/10 bg-white/5 text-silver-400 hover:border-white/20"
                       }`}
                     >
-                      {m.isPremium ? <Award className="w-4 h-4 text-gold flex-shrink-0" /> : <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
-                      <span className="truncate">{m.name}</span>
-                      {m.rating && <span className="ml-auto text-xs text-gold flex-shrink-0">★ {m.rating}</span>}
+                      {item === "all" ? "Todo" : item === "place" ? "Lugares" : "Negocios"}
                     </button>
                   ))}
                 </div>
@@ -268,13 +239,180 @@ const MapaPage = () => {
                   ))}
                 </div>
               </div>
+
+              <div className="overflow-hidden rounded-2xl border border-white/10">
+                {mode === "2d" ? (
+                  <Map2DPanel
+                    markers={filtered}
+                    selected={selected}
+                    viewport={viewport}
+                    onSelect={setSelected}
+                    onViewportChange={syncFrom2D}
+                  />
+                ) : (
+                  <Suspense
+                    fallback={
+                      <div className="flex h-[420px] items-center justify-center bg-night-900/70 text-sm text-silver-400 md:h-[640px]">
+                        Cargando Gemelo Digital 3D...
+                      </div>
+                    }
+                  >
+                    <Map3DTwin viewport={viewport} markers={filtered} onViewportChange={syncFrom3D} />
+                  </Suspense>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
+
+            <aside className="space-y-4 lg:col-span-4">
+              <div className="glass-dark rounded-2xl border border-white/10 p-4">
+                {selected ? (
+                  <>
+                    <img src={selected.image} alt={selected.name} className="mb-3 h-40 w-full rounded-xl object-cover" />
+                    <h2 className="text-xl font-semibold text-silver-200">{selected.name}</h2>
+                    <p className="mt-2 text-sm text-silver-400">{selected.description}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-silver-400">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+                        <MapPin className="h-3.5 w-3.5" /> {selected.category}
+                      </span>
+                      {selected.rating && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gold-500/10 px-2 py-1 text-gold-300">
+                          <Star className="h-3.5 w-3.5" /> {selected.rating}
+                        </span>
+                      )}
+                      {selected.isPremium && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-electric-500/10 px-2 py-1 text-gold-300">
+                          <Award className="h-3.5 w-3.5" /> Premium
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-emerald-300">
+                        <Layers className="h-3.5 w-3.5" /> {selected.status}
+                      </span>
+                    </div>
+                    <div className="mt-4 flex flex-col gap-2">
+                      {selected.phone && (
+                        <a
+                          href={`tel:${selected.phone}`}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gold-500 px-3 py-2 text-sm font-medium text-night-900"
+                        >
+                          <Phone className="h-4 w-4" /> Llamar
+                        </a>
+                      )}
+                      <button
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm font-medium text-silver-200 hover:bg-white/10"
+                        onClick={() => setSelected(markers[0])}
+                      >
+                        <LocateFixed className="h-4 w-4" /> Volver al nodo principal
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-silver-500">Selecciona un punto del mapa para ver detalles.</p>
+                )}
+              </div>
+
+              <div className="glass-dark rounded-2xl border border-gold-500/30 p-4">
+                <h3 className="font-semibold text-gold-300">Exploración rápida</h3>
+                <ul className="mt-3 space-y-2 text-sm text-silver-400">
+                  {filtered.slice(0, 4).map((item) => (
+                    <li key={item.id}>
+                      <button
+                        onClick={() => setSelected(item)}
+                        className="flex w-full items-center justify-between rounded-lg border border-white/10 px-3 py-2 text-left transition hover:border-gold-500/40 hover:bg-white/5"
+                      >
+                        <span>{item.name}</span>
+                        <span className="text-xs text-gold-300">Ver</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="rounded-2xl border border-gold-500/30 bg-gold-500/10 p-4">
+                <h3 className="font-semibold text-gold-300">Capa Realito AI (Plan de implementación)</h3>
+                <ol className="mt-2 list-decimal space-y-1 pl-4 text-sm text-silver-400">
+                  <li>Asistente contextual por POI con intentos de ruta, horario y compra.</li>
+                  <li>Streaming geoespacial de eventos por WebSocket federado.</li>
+                  <li>Sugerencias proactivas según densidad, clima y perfil de visitante.</li>
+                </ol>
+                <Link to="/negocios" className="mt-3 inline-block rounded-lg bg-gold-500 px-3 py-2 text-sm font-semibold text-night-900">
+                  Ir al portal de comercios
+                </Link>
+              </div>
+            </aside>
+          </section>
+
+          <section className="space-y-4 rounded-2xl border border-white/10 bg-night-900/70 p-4 md:p-6">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-silver-500">Integración híbrida</p>
+                <h2 className="text-2xl font-semibold text-silver-100">Control Room de Gemelos Digitales</h2>
+                <p className="mt-2 text-sm text-silver-400">Pipeline unificado para telemetría, modelos BIM/3D y simulaciones inmersivas con fallback para Lovable.</p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-silver-300">
+                <Workflow className="h-3.5 w-3.5 text-gold-300" />
+                Modo federado activo
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+              {twinSummary.map((source) => (
+                <article key={source.source} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-xs text-silver-400">{source.displayName}</p>
+                  <p className="mt-1 text-lg font-semibold text-silver-100">{source.healthScore}%</p>
+                  <p className="text-xs text-silver-400">Salud operativa</p>
+                  <div className="mt-2 space-y-1 text-xs text-silver-400">
+                    <p className="flex items-center gap-1"><Activity className="h-3 w-3 text-emerald-300" /> {source.throughputPerMinute}/min</p>
+                    <p className="flex items-center gap-1"><Cpu className="h-3 w-3 text-amber-300" /> {source.avgLatencyMs} ms</p>
+                    <p className="flex items-center gap-1"><DatabaseZap className="h-3 w-3 text-rose-300" /> {source.incidents} incidentes</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-xl border border-gold-500/30 bg-gold-500/10 p-4">
+                <h3 className="font-semibold text-gold-300">Acciones recomendadas</h3>
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-silver-300">
+                  {suggestedActions.length > 0 ? (
+                    suggestedActions.map((action) => <li key={action}>{action}</li>)
+                  ) : (
+                    <li>Sin alertas críticas; mantener sincronización en tiempo real y simulación calibrada.</li>
+                  )}
+                </ul>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <h3 className="font-semibold text-silver-100">Referencias integradas</h3>
+                <ul className="mt-2 space-y-1.5 text-sm text-silver-300">
+                  {integrationReferences.map((reference) => (
+                    <li key={reference.url}>
+                      <a
+                        href={reference.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 text-silver-200 hover:text-gold-300"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
+                        {reference.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+        </main>
+
         <Footer />
       </div>
     </PageTransition>
   );
-};
+}
 
-export default MapaPage;
+
+export default function MapaPage() {
+  return (
+    <MapSyncProvider>
+      <MapaPageContent />
+    </MapSyncProvider>
+  );
+}

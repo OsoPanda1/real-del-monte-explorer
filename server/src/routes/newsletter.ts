@@ -3,6 +3,10 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
+import {
+  subscribeToNewsletterProvider,
+  unsubscribeFromNewsletterProvider,
+} from '../lib/newsletterProvider';
 
 const router = Router();
 
@@ -71,12 +75,14 @@ router.post('/subscribe', async (req: Request, res: Response, next) => {
       }
     });
     
-    // TODO: Integrate with external provider (Mailchimp, Brevo, etc.)
-    // This would typically call the provider's API here
-    const providerApiKey = process.env.NEWSLETTER_PROVIDER_API_KEY;
-    if (providerApiKey) {
-      // await subscribeToProvider(email, data.name);
-      console.log('Would subscribe to provider:', email);
+    const providerResults = await subscribeToNewsletterProvider({
+      email,
+      name: data.name,
+      source: data.source,
+    });
+    const failedProviders = providerResults.filter((result) => !result.ok);
+    if (failedProviders.length > 0) {
+      console.warn('[NEWSLETTER] Provider subscribe warnings', failedProviders);
     }
     
     res.status(201).json({
@@ -127,10 +133,10 @@ router.post('/unsubscribe', async (req: Request, res: Response, next) => {
       }
     });
     
-    // TODO: Call provider to unsubscribe
-    const providerApiKey = process.env.NEWSLETTER_PROVIDER_API_KEY;
-    if (providerApiKey) {
-      console.log('Would unsubscribe from provider:', emailLower);
+    const providerResults = await unsubscribeFromNewsletterProvider(emailLower);
+    const failedProviders = providerResults.filter((result) => !result.ok);
+    if (failedProviders.length > 0) {
+      console.warn('[NEWSLETTER] Provider unsubscribe warnings', failedProviders);
     }
     
     res.json({

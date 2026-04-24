@@ -9,6 +9,7 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
+import { SEOMeta, PAGE_SEO } from "@/components/SEOMeta";
 import { TextReveal, StaggerContainer, StaggerItem, GlowCard } from "@/components/VisualEffects";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -775,6 +776,7 @@ const RutasPage = () => {
   return (
     <PageTransition>
       <div ref={containerRef} className="min-h-screen bg-background overflow-x-hidden">
+        <SEOMeta {...PAGE_SEO.rutas} />
         <Navbar />
         
         {/* Hero Section */}

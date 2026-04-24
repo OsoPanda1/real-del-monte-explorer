@@ -141,6 +141,11 @@ model Business {
   updatedAt            DateTime @updatedAt @map("updated_at")
 
   // Relations
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tipsReceived Tip[] @relation("TipsToBusiness")
+  liveEvents   LiveEvent[]
+  contentRecommendations ContentRecommendation[]
+  routeStops   RouteStopBusiness[]
   owner           User?          @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   tipsReceived   Tip[]         @relation("TipsToBusiness")
   donations      Donation[]
@@ -371,6 +376,8 @@ model Route {
 
   // Relations
   points RoutePoint[]
+  stops  RouteStop[]
+  type   String?        // "historia", "cultura", "gastronomia", "ecoturismo"
 
   @@map("routes")
 }
@@ -515,6 +522,116 @@ enum Sender {
   realito
 }
 
+// ==================== LIVE EVENTS (Real-time recommendations) ====================
+
+model LiveEvent {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  category    String        // "cultural", "gastronomico", "musical", "religioso", etc.
+  startsAt    DateTime      @map("starts_at")
+  endsAt      DateTime      @map("ends_at")
+  latitude    Float
+  longitude   Float
+  address     String?
+  imageUrl    String?       @map("image_url")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  
+  // Optional: link with a business
+  businessId  String?       @map("business_id")
+  business    Business?     @relation(fields: [businessId], references: [id])
+
+  @@index([startsAt])
+  @@index([endsAt])
+  @@index([category])
+  @@map("live_events")
+}
+
+// ==================== CONTENT SECTIONS (Narrative) ====================
+
+model ContentSection {
+  id          String   @id @default(uuid())
+  slug        String   @unique  // "historia", "cultura", "gastronomia", "ecoturismo"
+  title       String
+  description String?
+  type        String            // "historia", "cultura", "gastronomia", "ecoturismo"
+  isActive    Boolean           @default(true) @map("is_active")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  blocks      ContentBlock[]
+
+  @@map("content_sections")
+}
+
+model ContentBlock {
+  id          String   @id @default(uuid())
+  sectionId   String   @map("section_id")
+  order       Int
+  title       String
+  subtitle    String?
+  body        String
+  imageUrl    String?  @map("image_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  section         ContentSection          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  recommendations ContentRecommendation[]
+
+  @@map("content_blocks")
+}
+
+model ContentRecommendation {
+  id          String   @id @default(uuid())
+  blockId     String   @map("block_id")
+  businessId  String   @map("business_id")
+  order       Int
+  reason      String?  // Why this business is recommended for this block
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  block       ContentBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  business    Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("content_recommendations")
+}
+
+// ==================== ROUTE STOPS ====================
+
+model RouteStop {
+  id          String   @id @default(uuid())
+  routeId     String   @map("route_id")
+  order       Int
+  name        String
+  latitude    Float
+  longitude   Float
+  description String?
+  imageUrl    String?  @map("image_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  route       Route          @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  businesses  RouteStopBusiness[]
+
+  @@map("route_stops")
+}
+
+model RouteStopBusiness {
+  id          String   @id @default(uuid())
+  routeStopId String   @map("route_stop_id")
+  businessId  String   @map("business_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  routeStop   RouteStop @relation(fields: [routeStopId], references: [id], onDelete: Cascade)
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([routeStopId, businessId])
+  @@map("route_stop_businesses")
 // ==================== KNOWLEDGE BASE ====================
 
 model KnowledgeDocument {
@@ -539,4 +656,251 @@ enum KnowledgeType {
   EVENTO
   LUGAR
   NEGOCIO
+}
+
+// ==================== GEN-7+ ISABELLA DECISIONS ====================
+
+model IsabellaDecision {
+  id              String            @id @default(uuid())
+  traceId         String            @unique @map("trace_id")
+  territory       String            @default("RDM")
+  level           DecisionLevel     @map("decision_level")
+  retentionIntent RetentionIntent   @map("retention_intent")
+  pattern         TouristPattern    @map("tourist_pattern")
+  scoreTotal      Float             @map("score_total")
+  scoreFactors    Json              @map("score_factors")
+  scoreConfidence Float             @map("score_confidence")
+  distanceToExit  Float             @map("distance_to_exit")
+  speedMps        Float             @map("speed_mps")
+  latitude        Float
+  longitude       Float
+  payloadTitle    String            @map("payload_title")
+  payloadMessage  String            @map("payload_message")
+  rutaArActivada  Boolean           @default(false) @map("ruta_ar_activada")
+  experienciaSugerida String?       @map("experiencia_sugerida")
+  federacionDestino   String?       @map("federacion_destino")
+  turistaId       String?           @map("turista_id")
+  sessionId       String?           @map("session_id")
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  // Relations
+  feedback        DecisionFeedback?
+  tourist         TouristTracking?  @relation(fields: [turistaId], references: [id], onDelete: SetNull)
+
+  @@index([territory])
+  @@index([level])
+  @@index([retentionIntent])
+  @@index([createdAt])
+  @@map("isabella_decisions")
+}
+
+enum DecisionLevel {
+  CRITICO
+  ALERTA
+  INFO
+  SUGERENCIA
+}
+
+enum RetentionIntent {
+  SAFE_EXIT
+  UPSELL
+  DISCOVERY
+  RETENTION
+  ENGAGEMENT
+}
+
+enum TouristPattern {
+  EXPLORING
+  EXITING
+  IDLE
+  RETURNING
+  LINGERING
+}
+
+// ==================== DECISION FEEDBACK ====================
+
+model DecisionFeedback {
+  id              String          @id @default(uuid())
+  decisionId      String          @unique @map("decision_id")
+  rating          Int             // 1-5
+  feedback        String?
+  consentimiento  Boolean         @default(false)
+  actionTaken     Boolean         @default(false) @map("action_taken")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  decision        IsabellaDecision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+
+  @@map("decision_feedback")
+}
+
+// ==================== TOURIST TRACKING (GEN-7+) ====================
+
+model TouristTracking {
+  id                String            @id @default(uuid())
+  sessionId         String            @unique @map("session_id")
+  territory         String            @default("RDM")
+  latitude          Float
+  longitude         Float
+  prevLatitude      Float?            @map("prev_latitude")
+  prevLongitude     Float?            @map("prev_longitude")
+  stayTimeHours     Float             @default(0) @map("stay_time_hours")
+  lastInteractionAt DateTime          @map("last_interaction_at")
+  firstSeenAt       DateTime          @map("first_seen_at")
+  lastMovementAt    DateTime?         @map("last_movement_at")
+  deviceType        String?           @map("device_type")
+  referrer          String?
+  isActive          Boolean           @default(true) @map("is_active")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  decisions         IsabellaDecision[]
+
+  @@index([territory])
+  @@index([isActive])
+  @@index([lastInteractionAt])
+  @@map("tourist_tracking")
+}
+
+// ==================== HEPTAFEDERATION TELEMETRY ====================
+
+model FederationTelemetry {
+  id                String            @id @default(uuid())
+  moduleId          String            @map("module_id")
+  moduleName        String            @map("module_name")
+  specialty         String
+  status            FederationStatus  @default(ACTIVE)
+  health            Float             @default(1.0)
+  operationalScore  Float             @default(1.0) @map("operational_score")
+  recordedAt        DateTime          @default(now()) @map("recorded_at")
+
+  @@index([moduleId])
+  @@index([recordedAt])
+  @@map("federation_telemetry")
+}
+
+enum FederationStatus {
+  ACTIVE
+  IDLE
+  DEGRADED
+  OFFLINE
+}
+
+// ==================== ZONE SATURATION ====================
+
+model ZoneSaturation {
+  id              String    @id @default(uuid())
+  zoneId          String    @map("zone_id")
+  zoneName        String    @map("zone_name")
+  saturation      Float     @default(0) // 0.0 - 1.0
+  activeTourists  Int       @default(0) @map("active_tourists")
+  alertLevel      String?   @map("alert_level")
+  recordedAt      DateTime  @default(now()) @map("recorded_at")
+
+  @@index([zoneId])
+  @@index([recordedAt])
+  @@map("zone_saturation")
+}
+
+// ==================== AUTOPOIESIS LOG ====================
+
+model AutopoiesisLog {
+  id            String              @id @default(uuid())
+  eventType     AutopoiesisEventType @map("event_type")
+  entityType    String              @map("entity_type")
+  entityId      String?             @map("entity_id")
+  description   String
+  metadata      Json?
+  severity      String              @default("INFO")
+  traceId       String?             @map("trace_id")
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  @@index([eventType])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("autopoiesis_log")
+}
+
+enum AutopoiesisEventType {
+  CREATION
+  MODIFICATION
+  DELETION
+  STATE_CHANGE
+  RELATIONSHIP
+  EVOLUTION
+  ANOMALY
+  CORRECTION
+  DECISION_EMITTED
+  FEDERATION_DEGRADED
+  SATURATION_ALERT
+}
+
+// ==================== SOVEREIGN IDENTITY (SSI) ====================
+
+model SovereignIdentity {
+  id              String            @id @default(uuid())
+  did             String            @unique // Decentralized Identifier
+  publicKey       String            @map("public_key")
+  recoveryKeys    String[]          @map("recovery_keys")
+  sovereigntyLevel SovereigntyLevel @default(INDIVIDUAL) @map("sovereignty_level")
+  status          IdentityStatus    @default(PENDING)
+  nodeId          String?           @map("node_id")
+  userId          String?           @unique @map("user_id")
+  metadata        Json?
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  @@index([did])
+  @@index([status])
+  @@map("sovereign_identities")
+}
+
+enum SovereigntyLevel {
+  INDIVIDUAL
+  COMMUNITY
+  INSTITUTIONAL
+  FEDERAL
+}
+
+enum IdentityStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+  RECOVERING
+  FROZEN
+}
+
+// ==================== CIVIL NODES ====================
+
+model CivilNode {
+  id                  String              @id @default(uuid())
+  name                String
+  region              String
+  trustScore          Float               @default(0) @map("trust_score")
+  certificationLevel  CertificationLevel  @default(LEVEL_0) @map("certification_level")
+  status              NodeStatus          @default(PROVISIONING)
+  metadata            Json?
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([certificationLevel])
+  @@index([region])
+  @@map("civil_nodes")
+}
+
+enum CertificationLevel {
+  LEVEL_0
+  LEVEL_1
+  LEVEL_2
+  LEVEL_3
+  LEVEL_4
+}
+
+enum NodeStatus {
+  PROVISIONING
+  ACTIVE
+  SUSPENDED
+  DECOMMISSIONED
+  QUARANTINED
 }
