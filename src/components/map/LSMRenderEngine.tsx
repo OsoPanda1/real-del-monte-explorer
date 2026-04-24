@@ -1,12 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Circle,
-  LayerGroup,
-  MapContainer,
-  Popup,
-  TileLayer,
-} from 'react-leaflet';
-import type { CircleMarkerProps } from 'react-leaflet';
 import { useWebSocketSubscription } from '../../hooks/useWebSocket';
 
 interface LSMRenderProps {
@@ -15,99 +7,88 @@ interface LSMRenderProps {
     longitude: number;
     latitude: number;
     zoom: number;
+    pitch?: number;
+    bearing?: number;
   };
-}
-
-interface LSMNodeData {
-  id: string;
-  lat: number;
-  lng: number;
-  intensidadSaturacion?: number;
-  ofertaActiva?: boolean;
-  etiqueta?: string;
 }
 
 interface LSMNodeEvent {
   capa: LSMRenderProps['capaActiva'];
-  data: LSMNodeData;
+  data: {
+    id: string;
+    lat: number;
+    lng: number;
+    intensidadSaturacion?: number;
+    ofertaActiva?: boolean;
+  };
 }
 
-const getNodeStyle = (
-  capa: LSMRenderProps['capaActiva'],
-  node: LSMNodeData,
-): Pick<CircleMarkerProps, 'pathOptions' | 'radius'> => {
-  if (capa === 'movilidad') {
-    const intensidad = Math.max(0, Math.min(1, node.intensidadSaturacion ?? 0));
-    const color = intensidad > 0.85 ? '#ef4444' : intensidad > 0.6 ? '#f59e0b' : '#22c55e';
-    const radius = 20 + intensidad * 80;
-    return {
-      radius,
-      pathOptions: { color, fillColor: color, fillOpacity: 0.35, weight: 1 },
-    };
-  }
-
-  const isOferta = Boolean(node.ofertaActiva);
-  return {
-    radius: isOferta ? 28 : 14,
-    pathOptions: {
-      color: isOferta ? '#facc15' : '#64748b',
-      fillColor: isOferta ? '#eab308' : '#475569',
-      fillOpacity: 0.55,
-      weight: isOferta ? 2 : 1,
-    },
-  };
+const MAP_BOUNDS = {
+  minLat: 20.12,
+  maxLat: 20.16,
+  minLng: -98.69,
+  maxLng: -98.65,
 };
 
-export const LSMRenderEngine = ({ capaActiva, initialViewState }: LSMRenderProps) => {
-  const [nodosLSM, setNodosLSM] = useState<LSMNodeData[]>([]);
+const projectPoint = (lat: number, lng: number) => {
+  const x = ((lng - MAP_BOUNDS.minLng) / (MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng)) * 100;
+  const y = 100 - ((lat - MAP_BOUNDS.minLat) / (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat)) * 100;
+  return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
+};
+
+export const LSMRenderEngine = ({ capaActiva }: LSMRenderProps) => {
+  const [nodosLSM, setNodosLSM] = useState<LSMNodeEvent['data'][]>([]);
   const lastEvent = useWebSocketSubscription<LSMNodeEvent>('LSM_REALTIME_STREAM');
 
   useEffect(() => {
-    if (!lastEvent || lastEvent.capa !== capaActiva) {
-      return;
+    if (lastEvent && lastEvent.capa === capaActiva) {
+      setNodosLSM((prev) => {
+        const filtrados = prev.filter((n) => n.id !== lastEvent.data.id);
+        const nuevos = [...filtrados, lastEvent.data];
+        return nuevos.slice(-500);
+      });
     }
-
-    setNodosLSM((prev) => {
-      const filtered = prev.filter((n) => n.id !== lastEvent.data.id);
-      return [...filtered, lastEvent.data];
-    });
   }, [lastEvent, capaActiva]);
 
-  const orderedNodes = useMemo(
-    () => [...nodosLSM].sort((a, b) => (b.intensidadSaturacion ?? 0) - (a.intensidadSaturacion ?? 0)),
-    [nodosLSM],
-  );
+  const nodosVisuales = useMemo(() => {
+    return nodosLSM.map((nodo) => {
+      const point = projectPoint(nodo.lat, nodo.lng);
+      const saturacion = nodo.intensidadSaturacion ?? 0;
+      const scale = capaActiva === 'movilidad' ? 0.6 + saturacion : nodo.ofertaActiva ? 1.1 : 0.8;
+      return { ...nodo, ...point, scale };
+    });
+  }, [nodosLSM, capaActiva]);
 
   return (
-    <MapContainer
-      center={[initialViewState.latitude, initialViewState.longitude]}
-      zoom={initialViewState.zoom}
-      className="h-full w-full rounded-xl"
-      scrollWheelZoom
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <LayerGroup>
-        {orderedNodes.map((node) => {
-          const style = getNodeStyle(capaActiva, node);
-          return (
-            <Circle key={node.id} center={[node.lat, node.lng]} radius={style.radius} pathOptions={style.pathOptions}>
-              <Popup>
-                <div className="space-y-1">
-                  <p className="font-semibold">{node.etiqueta ?? `Nodo ${node.id}`}</p>
-                  <p className="text-xs">Capa: {capaActiva}</p>
-                  <p className="text-xs">
-                    Intensidad: {(node.intensidadSaturacion ?? 0).toFixed(2)} | Oferta:{' '}
-                    {node.ofertaActiva ? 'activa' : 'inactiva'}
-                  </p>
-                </div>
-              </Popup>
-            </Circle>
-          );
-        })}
-      </LayerGroup>
-    </MapContainer>
+    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-white/5 bg-[#060b16] shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(96,165,250,0.25),transparent_50%),radial-gradient(circle_at_75%_70%,rgba(16,185,129,0.2),transparent_48%),linear-gradient(180deg,#020617,#0f172a)]" />
+
+      {nodosVisuales.map((nodo) => (
+        <div
+          key={nodo.id}
+          className="absolute rounded-full border border-white/20"
+          style={{
+            left: `${nodo.x}%`,
+            top: `${nodo.y}%`,
+            width: `${16 * nodo.scale}px`,
+            height: `${16 * nodo.scale}px`,
+            transform: 'translate(-50%, -50%)',
+            background: nodo.ofertaActiva ? 'rgba(229,231,235,0.9)' : 'rgba(96,165,250,0.75)',
+            boxShadow: nodo.ofertaActiva
+              ? '0 0 0 4px rgba(229,231,235,0.18), 0 0 22px rgba(229,231,235,0.65)'
+              : '0 0 0 4px rgba(37,99,235,0.14), 0 0 18px rgba(59,130,246,0.6)',
+          }}
+          title={`${nodo.id} · capa ${capaActiva}`}
+        />
+      ))}
+
+      <div className="pointer-events-none absolute right-4 top-4 rounded-lg border border-white/10 bg-black/60 p-3 backdrop-blur-md">
+        <span className="mb-1 block text-[10px] uppercase tracking-[2px] text-slate-400">Estatus LSM</span>
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 animate-pulse rounded-full bg-blue-400" />
+          <span className="text-xs font-bold capitalize text-slate-200">{capaActiva}</span>
+        </div>
+      </div>
+    </div>
   );
 };

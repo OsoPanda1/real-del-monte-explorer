@@ -1,5 +1,14 @@
-import Redis from 'ioredis';
 import { supabaseAdmin } from '../integrations/supabase/admin';
+
+export enum Federacion {
+  HOSPEDAJE = 'FED_HOSPEDAJE',
+  GASTRONOMIA = 'FED_GASTRONOMIA',
+  MINERIA_PLATERIA = 'FED_PLATERIA',
+  TURISMO_ACTIVO = 'FED_TURISMO',
+  MOVILIDAD = 'FED_MOVILIDAD',
+  COMERCIO_LOCAL = 'FED_COMERCIO',
+  GOBIERNO_DIGITAL = 'FED_GOBIERNO',
+}
 
 interface CheckInPayload {
   turistaId: string;
@@ -22,39 +31,55 @@ export class FederationBus {
   }
 
   private initListeners() {
-    this.subscriber.subscribe('CHECKIN_HOSPEDAJE', (err) => {
-      if (err) {
-        console.error('Error suscribiendo a Federación de Hospedaje', err);
-      }
+    const channels = ['CHECKIN_HOSPEDAJE', 'LSM_REALTIME_STREAM', 'SOVEREIGNTY_ALERTS'];
+
+    this.subscriber.subscribe(...channels).catch((err) => {
+      console.error('CRITICAL: Error en Kernel de Federación', err);
     });
 
-    this.subscriber.on('message', async (channel, message) => {
-      if (channel === 'CHECKIN_HOSPEDAJE') {
-        await this.handleCheckIn(JSON.parse(message) as CheckInPayload);
+    this.subscriber.onMessage(async (channel, message) => {
+      try {
+        const data = JSON.parse(message);
+
+        switch (channel) {
+          case 'CHECKIN_HOSPEDAJE':
+            await this.handleCheckIn(data as CheckInPayload);
+            break;
+          case 'LSM_REALTIME_STREAM':
+            console.log('[LSM] Stream de telemetría procesado');
+            break;
+          default:
+            break;
+        }
+      } catch (error) {
+        console.error(`[BUS] Error procesando canal ${channel}:`, error);
       }
     });
   }
 
-  /**
-   * Cuando un turista hace check-in en la Federación 1 (Hospedaje),
-   * se activa la Federación 2 (Gastronomía) para retener el capital.
-   */
   private async handleCheckIn(payload: CheckInPayload) {
-    console.log(`[FEDERACION] Procesando Check-in cruzado. Turista: ${payload.turistaId}`);
+    console.log(`[FEDERACION] Ejecutando Protocolo de Retención. Turista: ${payload.turistaId}`);
 
     const oferta = await this.generarOfertaGastronomica(payload.hotelId);
 
-    const { error } = await supabaseAdmin.from('plusvalia_tracker').insert({
-      origen_federacion: 'hospedaje',
-      destino_federacion: 'gastronomia',
-      tipo_evento: 'cross_sell_automatico',
-      valor_estimado_mxn: payload.noches * 250,
-      metadata: { hotelId: payload.hotelId, oferta },
-    });
+    const registro = {
+      author_name: 'federation-bus',
+      title: `Cross-sell ${payload.turistaId}`,
+      content: JSON.stringify({
+        origen_federacion: Federacion.HOSPEDAJE,
+        destino_federacion: Federacion.GASTRONOMIA,
+        tipo_evento: 'cross_sell_automatico',
+        valor_estimado_mxn: payload.noches * 250,
+        metadata: {
+          hotelId: payload.hotelId,
+          oferta,
+          protocol: 'EOCT-KERNEL-B',
+        },
+      }),
+    };
 
-    if (error) {
-      console.error('Error persistiendo plusvalía federada', error);
-    }
+    const { error } = await supabaseAdmin.from('forum_posts').insert(registro);
+    if (error) console.error('Error en Ledger de Plusvalía:', error);
 
     await this.publisher.publish(
       'REALITO_TRIGGER',
@@ -69,9 +94,21 @@ export class FederationBus {
   private async generarOfertaGastronomica(hotelId: string) {
     return {
       origenHotel: hotelId,
-      restaurante: 'Paste_Minero_01',
-      descuento: '10%',
+      restaurante: 'Paste_Minero_Reserva',
+      descuento: '15%',
       vence_en_mins: 120,
+      premium: true,
     };
+  }
+
+  public async emitSovereigntyEvent(type: string, details: unknown) {
+    await this.publisher.publish(
+      'SOVEREIGNTY_ALERTS',
+      JSON.stringify({
+        type,
+        details,
+        timestamp: Date.now(),
+      }),
+    );
   }
 }
