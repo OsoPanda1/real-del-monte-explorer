@@ -90,7 +90,7 @@ export default function MapaPage() {
             {[{ key: "all", label: "Todo" }, { key: "place", label: "Lugares" }, { key: "business", label: "Comercios" }].map((item) => (
               <button
                 key={item.key}
-                onClick={() => setFilter(item.key as "all" | MarkerType)}
+                onClick={() => { setFilter(item.key as "all" | MarkerType); setSelected(null); }}
                 className={`rounded-full border px-4 py-2 text-sm ${filter === item.key ? "border-gold-500 bg-gold-500/20 text-gold-300" : "border-white/10 bg-white/5 text-silver-400 hover:bg-white/10"}`}
               >
                 <Filter className="mr-1 inline h-3.5 w-3.5" /> {item.label}
