@@ -1,0 +1,9 @@
+legacy/
+.github/
+scripts/
+*.md
+!README.md
+docs/
+.env
+.env.*
+!.env.example

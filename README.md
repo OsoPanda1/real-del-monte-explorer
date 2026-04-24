@@ -1,206 +1,171 @@
 # Real del Monte Explorer (RDM Digital)
 
-Plataforma turística digital para **Real del Monte, Hidalgo**. Combina un frontend inmersivo (React + Vite), módulos de mapa 2D/3D, directorio/comunidad/eventos y un backend API en Express con Prisma para operación de datos, analítica, IA y servicios de negocio.
-
-## ¿Qué hace realmente este proyecto?
-
-### Frontend (este repositorio raíz)
-- Experiencia web SPA con rutas públicas de turismo:
-  - Inicio, Mapa, Rutas, Historia, Cultura, Relatos, Ecoturismo, Gastronomía, Arte, Comunidad, Directorio, Eventos y más.
-- Módulos visuales destacados:
-  - **Mapa híbrido 2D/3D** (Leaflet + Three.js).
-  - **Galería multimedia** (imagen y video).
-  - **Experiencia conversacional REALITO AI** (launcher + componente chat).
-- Integración con Supabase para autenticación/datos y funciones edge.
-
-### Backend (`/server`)
-API REST con prefijos `/api/v1/*` (y compatibilidad legacy `/api/*`) para:
-- auth y usuarios,
-- negocios/directorio,
-- eventos,
-- rutas turísticas,
-- posts/comunidad,
-- marcadores geoespaciales,
-- tips,
-- SEO,
-- upload,
-- pagos,
-- newsletter,
-- analítica,
-- endpoints de IA,
-- reporte de brechas de ecosistema GitHub (`/api/v1/ecosystem/*`).
-
-### Infraestructura incluida
-- Docker multi-stage para frontend y backend.
-- `docker-compose.yml` para levantar frontend + backend + PostgreSQL.
-- Manifiestos Kubernetes para frontend y backend (Deployment, Service, Ingress, HPA, ConfigMap, Secret).
+Plataforma turística digital para **Real del Monte, Hidalgo**. SPA inmersiva (React + Vite) con módulos de mapa 2D/3D, directorio, comunidad, eventos y experiencia conversacional REALITO AI, sobre infraestructura serverless **Vercel + Supabase**.
 
 ---
 
-## Stack técnico
+## Arquitectura actual
 
-- **Frontend**: React 18, TypeScript, Vite 7, TailwindCSS, Framer Motion, React Router, Leaflet, Three.js, Radix UI.
-- **Backend**: Node.js 20, Express, TypeScript, Prisma, PostgreSQL, JWT, Stripe, OpenAI.
-- **DevOps**: Docker, Nginx, Kubernetes.
+```
+┌────────────────────────────────────────────────────────────┐
+│                       Navegador                            │
+└────────────┬───────────────────────────────┬───────────────┘
+             │                               │
+             ▼                               ▼
+   ┌────────────────────┐         ┌──────────────────────┐
+   │      Vercel        │         │      Supabase        │
+   │  (CDN + SPA + OG)  │         │                      │
+   │                    │         │  - Postgres + RLS    │
+   │  React + Vite      │◀────────┤  - Auth              │
+   │  Leaflet + Three   │         │  - Storage           │
+   │  Framer Motion     │         │  - Edge Functions    │
+   └────────────────────┘         │    (realito-chat, …) │
+                                  └──────────────────────┘
+```
+
+**Una sola fuente de verdad, un solo hosting, un solo backend.** El repo ya no contiene Docker/K8s/Express activos (ver `legacy/`).
 
 ---
 
-## Estructura principal
+## Stack
+
+- **Frontend**: React 18, TypeScript, Vite 7, TailwindCSS, Framer Motion, React Router, Leaflet, Three.js, Radix UI, shadcn/ui
+- **Backend**: Supabase (Postgres con RLS, Auth, Storage, Edge Functions en Deno)
+- **Hosting**: Vercel (CDN global, SPA rewrites, preview deployments por PR)
+- **IA**: Edge Function `realito-chat` + integración AI SDK en cliente cuando aplique
+
+---
+
+## Estructura
 
 ```text
-src/                    # Frontend SPA
-server/                 # API backend Express + Prisma
-supabase/               # Config y funciones edge
-docker-compose.yml      # Stack local containerizado
-k8s/                    # Manifiestos de despliegue Kubernetes
-Dockerfile.frontend     # Build/serve frontend
-Dockerfile.backend      # Build/runtime backend
+src/                     # Frontend SPA (pages, components, hooks, integrations)
+public/                  # Assets estáticos (incluye og-image.jpg)
+supabase/
+  config.toml            # Proyecto: dwjaomisrpdzssqzhrtx
+  migrations/            # Esquema versionado (aplicar con supabase db push)
+  functions/realito-chat # Edge Function para el asistente IA
+vercel.json              # SPA rewrites + headers de seguridad/caché
+legacy/                  # Backend Express + Docker + K8s archivados (ver legacy/README.md)
 ```
 
 ---
 
 ## Desarrollo local
 
-### 1) Frontend
 ```bash
 npm install
-npm run dev
+cp .env.example .env     # Completa VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY
+npm run dev              # http://localhost:8080
 ```
-App: `http://localhost:5173`
 
-### 2) Backend (en paralelo)
-```bash
-npm --prefix server install
-npm --prefix server run dev
-```
-API: `http://localhost:3001`
-
----
-
-## Variables de entorno recomendadas
-
-### Frontend (`.env` en raíz)
-- `VITE_API_URL` (ej. `http://localhost:3001/api/v1`)
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-
-### Backend (`.env` en raíz o `server/.env` según flujo)
-- `NODE_ENV=development|production`
-- `PORT=3001`
-- `DATABASE_URL=postgresql://...`
-- `JWT_SECRET`
-- `JWT_REFRESH_SECRET`
-- `FRONTEND_URL`
-- `OPENAI_API_KEY`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_KEY`
-
-> Nota: en Kubernetes, estas variables ya están modeladas con `ConfigMap` y `Secret` en `k8s/deployment-backend.yaml`.
-
----
-
-## Calidad, build y estado actual
-
-### Frontend
-```bash
-npm run test
-npm run build
-npm run verify:go-green
-```
-- `test`: pasa.
-- `build`: genera artefactos de producción en `dist/`.
-- `verify:go-green`: validación lista para pipeline CI.
-
-### Backend
-```bash
-npm --prefix server run build
-```
-- Actualmente existen errores de tipado/compilación que deben resolverse antes de salida a producción completa del backend.
-- Este repositorio ya incluye la base de despliegue, pero requiere cierre técnico del backend para CI/CD “verde”.
-
----
-
-## Producción y despliegue
-
-## Opción A: Docker Compose (rápida para staging)
+Para trabajar contra Supabase local (opcional):
 
 ```bash
-docker compose up -d --build
+npx supabase start
+npx supabase functions serve realito-chat
 ```
 
-Servicios:
-- Frontend Nginx: `http://localhost`
-- Backend API: `http://localhost:3001`
-- PostgreSQL: `localhost:5432`
+---
 
-Checklist mínimo:
-1. Ajustar credenciales de DB (no usar valores por defecto).
-2. Definir `.env` real para backend.
-3. Confirmar healthchecks `/health` en frontend y backend.
-4. Ejecutar migraciones Prisma en entorno objetivo.
+## Variables de entorno
 
-## Opción B: Kubernetes (producción)
+Solo las que empiezan con `VITE_` se exponen al cliente. Configurar en Vercel Dashboard → Project → Settings → Environment Variables.
 
-Archivos base:
-- `k8s/deployment-frontend.yaml`
-- `k8s/deployment-backend.yaml`
+| Variable | Uso | Requerida |
+|----------|-----|-----------|
+| `VITE_SUPABASE_URL` | URL del proyecto Supabase | Sí |
+| `VITE_SUPABASE_ANON_KEY` | Clave anónima (segura para cliente) | Sí |
+| `VITE_MAPBOX_TOKEN` | Si usas tiles de Mapbox en el mapa | Opcional |
 
-Flujo recomendado:
-1. Publicar imágenes versionadas en registry (`ghcr.io/...`).
-2. Reemplazar `:latest` por tags inmutables.
-3. Crear namespace y aplicar manifiestos.
-4. Cargar secretos reales (`database_url`, `jwt_*`, `stripe_*`, `openai_api_key`).
-5. Verificar Ingress TLS y dominio.
-6. Validar HPA backend y límites de recursos.
-
-## Pipeline CI para “Go Green”
-
-Se agregó un workflow de GitHub Actions para el frontend:
-- Archivo: `.github/workflows/frontend-go-green.yml`
-- Etapas: `npm ci` → `npm run test` → `npm run build` → upload de `dist/`
-- Objetivo: asegurar que cada PR/commit deje la ruta de despliegue del frontend en estado verde.
+> **Nunca** commitear `.env` al repo (`.gitignore` lo bloquea). Las claves `service_role` de Supabase viven solo en Edge Functions, nunca en el cliente.
 
 ---
 
-## Hallazgos del análisis profundo (estado técnico)
+## Despliegue
 
-1. **Frontend listo para build** y funcional para demo/staging.
-2. **Pipeline CI frontend “go green” habilitado** para prevenir regresiones de despliegue.
-3. **Backend con deuda técnica de tipado/compilación** (bloquea release full stack estable).
-4. **Peso de assets multimedia alto** (videos grandes); recomendable optimización adicional para rendimiento móvil.
-5. **Infra de despliegue ya definida** (Docker + K8s), útil para acelerar puesta en marcha con hardening final.
+### Producción
 
----
+Push a `main` → Vercel construye y publica automáticamente.
 
-## Mejoras realizadas en esta iteración
+```bash
+git push origin main
+```
 
-- Correcciones de visualización/UX en reproductor de video:
-  - overlay y controles visibles en móvil,
-  - cierre con `Esc`,
-  - bloqueo de scroll de fondo al abrir modal,
-  - manejo robusto de progreso para evitar estados inválidos.
-- Mejora visual en filtros de la página de mapa:
-  - botones “Lugares” y “Negocios” ahora reflejan estado activo de forma clara.
-- Mejora visual del mapa interactivo 2D:
-  - cambio de estilo base oscuro/claro,
-  - recenter funcional del viewport,
-  - leyenda viva y HUD con coordenadas/zoom en tiempo real.
-- Micro presentaciones al inicio de navegación:
-  - nuevo banner contextual por ruta para reforzar orientación de usuario.
-- Implementación técnica para go green de despliegue frontend:
-  - script `verify:go-green` y workflow CI dedicado.
-- README completamente actualizado con descripción real, arquitectura, estado actual, producción y despliegue.
+`vercel.json` se encarga de:
+- Rewrites SPA (rutas como `/mapa`, `/rutas`, `/comunidad` no dan 404 al recargar)
+- Headers de caché para assets (`assets/*` inmutables, `og-image.jpg` con revalidación)
+- Headers de seguridad (X-Frame-Options, X-Content-Type-Options, Referrer-Policy)
+
+### Preview
+
+Cada PR genera una URL de preview con su propia instancia. Útil para QA antes de merge.
+
+### Edge Functions de Supabase
+
+```bash
+npx supabase functions deploy realito-chat
+```
+
+Las funciones se despliegan independientemente del frontend.
 
 ---
 
-## Referencias internas clave
+## Scripts
 
-- Frontend app y routing: `src/App.tsx`
-- Landing: `src/pages/Index.tsx`
+```bash
+npm run dev              # Servidor de desarrollo (puerto 8080)
+npm run build            # Build de producción en dist/
+npm run preview          # Previsualizar el build
+npm run lint             # ESLint
+npm run test             # Vitest
+npm run verify:go-green  # Pipeline local: test + build
+```
+
+---
+
+## Decisiones de arquitectura
+
+### Por qué solo Vercel (y no Netlify + Lovable en paralelo)
+
+- **Drift eliminado**: una única tubería de despliegue evita que tres proveedores muestren versiones distintas al mismo tiempo.
+- **Un solo lockfile** (`package-lock.json`): builds reproducibles entre local, preview y prod.
+- **`.vercelignore`** excluye `legacy/`, `docs/`, workflows y scripts del bundle final.
+- **Lovable** (y `lovable-tagger`) permanece como herramienta de desarrollo opcional en `devDependencies`; si se desinstala, `vite.config.ts` sigue funcionando sin errores.
+
+### Por qué Supabase en lugar de Express + Prisma + Postgres propio
+
+- Auth, DB y Edge Functions con un solo SDK en el cliente.
+- RLS (Row Level Security) nativo, más seguro que middlewares JWT artesanales.
+- Sin servidores que mantener, escalar, parchar o monitorear.
+- El backend Express original (`legacy/server/`) se conserva como referencia para migrar rutas pendientes a Edge Functions cuando haga falta.
+
+---
+
+## Rutas de la SPA
+
+Públicas: `/`, `/mapa`, `/rutas`, `/historia`, `/cultura`, `/relatos`, `/ecoturismo`, `/gastronomia`, `/arte`, `/comunidad`, `/directorio`, `/eventos`.
+
+Módulos destacados:
+- **Mapa híbrido 2D/3D** con Leaflet + Three.js (`src/pages/Mapa.tsx`, `src/components/map/*`)
+- **REALITO AI** chat con Supabase Edge Function (`src/components/RealitoChat.tsx`)
+
+---
+
+## Siguientes pasos recomendados
+
+- [ ] Migrar rutas críticas de `legacy/server/src/routes/` a `supabase/functions/*` cuando se confirme que ningún cliente externo las consume
+- [ ] Sustituir `VITE_API_URL` en `src/lib/api.ts`, `src/lib/apiClient.ts`, `src/pages/Gastronomia.tsx` y `src/hooks/useWebSocket.ts` por llamadas directas al cliente de Supabase o a Edge Functions
+- [ ] Rotar las claves que hayan estado en el `.env` commiteado (Supabase service_role, Stripe, OpenAI si aplica)
+- [ ] Configurar dominio custom en Vercel y deshabilitar el deploy de Netlify en el dashboard de Netlify
+
+---
+
+## Referencias
+
+- App y routing: `src/App.tsx`
+- Cliente Supabase: `src/integrations/supabase/client.ts`
 - Mapa: `src/pages/Mapa.tsx`, `src/components/map/*`
-- Chat IA: `src/components/RealitoChat.tsx`
-- Backend bootstrap: `server/src/index.ts`
-- Contenedores: `Dockerfile.frontend`, `Dockerfile.backend`, `docker-compose.yml`
-- Kubernetes: `k8s/deployment-frontend.yaml`, `k8s/deployment-backend.yaml`
+- Chat IA: `src/components/RealitoChat.tsx`, `supabase/functions/realito-chat/*`
+- Configuración Vercel: `vercel.json`, `.vercelignore`
+- Backend archivado: `legacy/README.md`
