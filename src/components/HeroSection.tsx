@@ -20,6 +20,7 @@ export default function HeroSection() {
 
   const activeSlide = slides[currentSlide];
 
+export default function HeroSection() {
   return (
     <section ref={containerRef} className="relative min-h-screen overflow-hidden bg-night-900 text-silver-300">
       {/* Parallax Background */}

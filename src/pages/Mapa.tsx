@@ -97,6 +97,77 @@ function MapaPageContent() {
   return (
     <PageTransition>
       <SEOMeta {...PAGE_SEO.mapa} />
+      <div className="min-h-screen bg-night-900 text-silver-300">
+        <Navbar />
+
+        <main className="mx-auto max-w-7xl px-4 pb-12 pt-24 md:px-6">
+          <header className="mb-6 rounded-2xl border border-white/10 bg-night-800/70 p-5">
+            <h1 className="font-serif text-3xl text-gold-400">Mapa inteligente de Real del Monte</h1>
+            <p className="mt-2 text-sm text-silver-500">Mapa funcional con selección de puntos, enfoque automático y panel de detalles sin superposición.</p>
+          </header>
+
+          <div className="mb-4 flex flex-wrap gap-2">
+            {[{ key: "all", label: "Todo" }, { key: "place", label: "Lugares" }, { key: "business", label: "Comercios" }].map((item) => (
+              <button
+                key={item.key}
+                onClick={() => { setFilter(item.key as "all" | MarkerType); setSelected(null); }}
+                className={`rounded-full border px-4 py-2 text-sm ${filter === item.key ? "border-gold-500 bg-gold-500/20 text-gold-300" : "border-white/10 bg-white/5 text-silver-400 hover:bg-white/10"}`}
+              >
+                <Filter className="mr-1 inline h-3.5 w-3.5" /> {item.label}
+              </button>
+            ))}
+          </div>
+
+          <section className="grid gap-4 lg:grid-cols-12">
+            <div className="overflow-hidden rounded-2xl border border-white/10 lg:col-span-8">
+              <MapContainer center={[20.1374, -98.6732]} zoom={14} className="h-[420px] w-full md:h-[640px]" zoomControl>
+                <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <MapFocus selected={selected} />
+                {filtered.map((marker) => (
+                  <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={createIcon(marker.type, marker.isPremium)} eventHandlers={{ click: () => setSelected(marker) }}>
+                    <Popup>
+                      <strong>{marker.name}</strong>
+                      <p>{marker.description}</p>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </div>
+
+            <aside className="space-y-4 lg:col-span-4">
+              <div className="rounded-2xl border border-white/10 bg-night-800/70 p-4">
+                {selected ? (
+                  <>
+                    <img src={selected.image} alt={selected.name} className="mb-3 h-36 w-full rounded-lg object-cover" />
+                    <h2 className="text-lg font-semibold text-silver-200">{selected.name}</h2>
+                    <p className="mt-2 text-sm text-silver-500">{selected.description}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-silver-400">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1"><MapPin className="h-3.5 w-3.5" /> {selected.category}</span>
+                      {selected.rating && <span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 text-gold-400" /> {selected.rating}</span>}
+                      {selected.isPremium && <span className="inline-flex items-center gap-1 text-gold-400"><Award className="h-3.5 w-3.5" /> Premium</span>}
+                    </div>
+                    {selected.phone && (
+                      <a href={`tel:${selected.phone}`} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gold-500 px-3 py-2 text-sm font-medium text-night-900">
+                        <Phone className="h-4 w-4" /> Llamar
+                      </a>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-silver-500">Selecciona un punto del mapa para ver detalles.</p>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-night-800/70 p-3">
+                <p className="mb-2 text-xs text-silver-500">Directorio visible en mapa ({filtered.length})</p>
+                <div className="max-h-40 space-y-2 overflow-auto">
+                  {filtered.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setSelected(item)}
+                      className={`w-full rounded-lg px-3 py-2 text-left text-sm ${selected?.id === item.id ? "bg-gold-500/20 text-gold-300" : "bg-white/5 text-silver-400 hover:bg-white/10"}`}
+                    >
+                      {item.name}
+                    </button>
       <div className="min-h-screen bg-night-900 text-silver-300 cinematic-gradient">
         <Navbar />
 
