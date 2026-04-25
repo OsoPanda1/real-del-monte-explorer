@@ -64,6 +64,8 @@ interface ForumComment {
 }
 
 const Comunidad = () => {
+  const MAX_POSTS = 100;
+  const MAX_RECONNECT_ATTEMPTS = 5;
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [comments, setComments] = useState<Record<string, ForumComment[]>>({});
   const [loading, setLoading] = useState(true);
@@ -75,29 +77,72 @@ const Comunidad = () => {
     author_name: "", title: "", content: "", place_name: "", category: "general" 
   });
   const [submitting, setSubmitting] = useState(false);
+  const [likingPostIds, setLikingPostIds] = useState<Record<string, boolean>>({});
+  const expandedPostRef = useRef<string | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectTimerRef = useRef<number | null>(null);
 
   // Fetch posts
   useEffect(() => {
     fetchPosts();
-    
-    // Realtime subscription
-    const channel = supabase
-      .channel('forum-posts')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'forum_posts' }, () => fetchPosts())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'forum_comments' }, () => {
-        if (expandedPost) fetchComments(expandedPost);
-      })
-      .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    let activeChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    const subscribe = () => {
+      activeChannel = supabase
+        .channel('forum-posts')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'forum_posts' }, () => fetchPosts())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'forum_comments' }, () => {
+          if (expandedPostRef.current) fetchComments(expandedPostRef.current);
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            reconnectAttemptsRef.current = 0;
+            return;
+          }
+
+          if (
+            (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') &&
+            reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS
+          ) {
+            reconnectAttemptsRef.current += 1;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 15000);
+            reconnectTimerRef.current = window.setTimeout(() => {
+              if (activeChannel) supabase.removeChannel(activeChannel);
+              subscribe();
+            }, delay);
+          }
+        });
+    };
+
+    subscribe();
+
+    return () => {
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current);
+      }
+      if (activeChannel) {
+        supabase.removeChannel(activeChannel);
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    expandedPostRef.current = expandedPost;
+  }, [expandedPost]);
 
   const fetchPosts = async () => {
     const { data, error } = await supabase
       .from('forum_posts')
       .select('*')
-      .order('created_at', { ascending: false });
-    
+      .order('created_at', { ascending: false })
+      .limit(MAX_POSTS);
+
+    if (error) {
+      console.error('[Comunidad] Error cargando posts:', error.message);
+      setLoading(false);
+      return;
+    }
     if (data) setPosts(data);
     setLoading(false);
   };
@@ -144,12 +189,21 @@ const Comunidad = () => {
     fetchComments(postId);
   };
 
-  const handleLike = async (postId: string, currentLikes: number) => {
-    await supabase
-      .from('forum_posts')
-      .update({ likes: currentLikes + 1 })
-      .eq('id', postId);
-    fetchPosts();
+  const handleLike = async (postId: string) => {
+    if (likingPostIds[postId]) return;
+    setLikingPostIds(prev => ({ ...prev, [postId]: true }));
+
+    const { error } = await supabase.rpc('increment_forum_post_likes', {
+      post_uuid: postId,
+    });
+
+    if (error) {
+      console.error('[Comunidad] Error al registrar like:', error.message);
+    } else {
+      fetchPosts();
+    }
+
+    setLikingPostIds(prev => ({ ...prev, [postId]: false }));
   };
 
   const toggleComments = (postId: string) => {
@@ -289,7 +343,8 @@ const Comunidad = () => {
                         {/* Actions */}
                         <div className="flex items-center gap-4 pt-3 border-t border-border/50">
                           <button 
-                            onClick={() => handleLike(post.id, post.likes)}
+                            onClick={() => handleLike(post.id)}
+                            disabled={Boolean(likingPostIds[post.id])}
                             className="flex items-center gap-1.5 text-muted-foreground hover:text-red-500 transition-colors"
                           >
                             <Heart className="w-4 h-4" />

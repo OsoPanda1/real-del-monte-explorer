@@ -81,6 +81,7 @@ Solo las que empiezan con `VITE_` se exponen al cliente. Configurar en Vercel Da
 
 > **Nunca** commitear `.env` al repo (`.gitignore` lo bloquea). Las claves `service_role` de Supabase viven solo en Edge Functions, nunca en el cliente.
 > Si falta `VITE_SUPABASE_URL` o `VITE_SUPABASE_ANON_KEY`, la app se renderiza en modo degradado para evitar pantalla en blanco, pero sin auth ni datos vivos hasta configurar variables en Vercel.
+> En **producción** ahora se valida el entorno al arrancar y si las variables críticas de Supabase son inválidas o faltantes, la app falla rápido con error descriptivo.
 
 ---
 
@@ -139,6 +140,14 @@ npx supabase functions deploy realito-chat
 ```
 
 Las funciones se despliegan independientemente del frontend.
+
+### SQL / políticas de datos
+
+Para aplicar cambios de seguridad del foro (like por RPC y evitar `UPDATE` directo):
+
+```bash
+npx supabase db push
+```
 
 ---
 
