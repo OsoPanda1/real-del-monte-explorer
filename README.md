@@ -103,6 +103,35 @@ git push origin main
 
 Cada PR genera una URL de preview con su propia instancia. Útil para QA antes de merge.
 
+### Despliegue inmediato en Lovable
+
+Si quieres publicar este repo desde Lovable sin pasos extra:
+
+1. **Framework**: Vite
+2. **Install command**: `npm ci`
+3. **Build command**: `npm run build`
+4. **Output directory**: `dist`
+5. **Node.js**: `20.x` o superior (el repo declara `>=20.0.0`)
+
+Variables mínimas en Lovable (Project Settings → Environment Variables):
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+Opcionales:
+
+- `VITE_MAPBOX_TOKEN`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+Checklist rápido antes de publicar:
+
+```bash
+npm run test
+npm run build
+```
+
+Con esto la app queda lista para deploy estático inmediato en Lovable usando el directorio `dist`.
+
 ### Edge Functions de Supabase
 
 ```bash
