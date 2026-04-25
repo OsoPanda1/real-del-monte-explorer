@@ -39,12 +39,32 @@ export default defineConfig(async ({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            "vendor-react": ["react", "react-dom", "react-router-dom"],
-            "vendor-three": ["three", "@react-three/fiber", "@react-three/drei"],
-            "vendor-motion": ["framer-motion"],
-            "vendor-genai": ["@google/genai"],
-            "vendor-leaflet": ["leaflet", "react-leaflet", "supercluster"],
+          manualChunks(id) {
+            if (!id.includes("node_modules")) return undefined;
+            if (
+              id.includes("/node_modules/react/") ||
+              id.includes("/node_modules/react-dom/") ||
+              id.includes("/node_modules/react-router-dom/")
+            ) {
+              return "vendor-react";
+            }
+            if (
+              id.includes("/node_modules/three/") ||
+              id.includes("/node_modules/@react-three/fiber/") ||
+              id.includes("/node_modules/@react-three/drei/")
+            ) {
+              return "vendor-three";
+            }
+            if (id.includes("/node_modules/framer-motion/")) return "vendor-motion";
+            if (id.includes("/node_modules/@google/genai/")) return "vendor-genai";
+            if (
+              id.includes("/node_modules/leaflet/") ||
+              id.includes("/node_modules/react-leaflet/") ||
+              id.includes("/node_modules/supercluster/")
+            ) {
+              return "vendor-leaflet";
+            }
+            return undefined;
           },
         },
       },
