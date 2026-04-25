@@ -20,6 +20,9 @@ import GradientSeparator from "@/components/GradientSeparator";
 import PageTransition from "@/components/PageTransition";
 import ExperienceHub from "@/components/ExperienceHub";
 import MapaView from "@/components/MapaView";
+import GithubNodeZero from "@/components/GithubNodeZero";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 import { usePlaces } from "@/features/places";
 import { useBusinesses } from "@/features/businesses";
@@ -257,6 +260,12 @@ const Index = () => {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="py-20">
+          <div className="container mx-auto px-4 md:px-8">
+            <GithubNodeZero />
           </div>
         </section>
 
